@@ -908,3 +908,10 @@ input,select,textarea{font-size:16px} /* чтобы iOS не зумил стра
   #rollRow .btn{font-size:18px}
   .btn{padding:13px 22px}
 }
+
+/* --- Реклама за награду (Adsgram) --- */
+.btab[data-btab="ads"]{grid-column:1/-1}
+.btab[data-btab="ads"] .tt small{display:block}
+.adc .adi{flex:0 0 auto;width:130px;height:110px;display:flex;align-items:center;justify-content:center;font-size:60px;border-radius:16px;background:radial-gradient(circle at 50% 35%,#2a2110,#13161b 72%);border:1px solid #3a3017;box-shadow:inset 0 0 30px -12px var(--gold)}
+.adc .btn{align-self:flex-start;margin-top:4px}
+@media(max-width:520px){.adc .adi{width:100%;height:84px;font-size:48px}.adc .btn{align-self:stretch}}
