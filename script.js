@@ -75,7 +75,7 @@ var BODY = {
 };
 
 /* ===== Состояние и сохранение ===== */
-function fresh() { return {balance:250000, inv:[], cars:[], country:'RU', ver:3, donate:0, opened:0, opn:{}, free:{}, claimed:{}, dailyAt:0, dailyN:0, adAt:0, adN:0, rewards:[], pend:null, col:{}, mg:{best:0, games:0}, xp:0, dry:0, last:[], mis:null, ach:{}, stat:{spins:0,spent:0,kept:0,sold:0,cases:0,best:0,bestP:null,byRar:[0,0,0,0,0,0,0],upg:0,upgWin:0,frames:0,misDone:0}}; }
+function fresh() { return {balance:250000, inv:[], cars:[], country:'RU', ver:3, donate:0, opened:0, opn:{}, free:{}, claimed:{}, dailyAt:0, dailyN:0, adAt:0, adN:0, adCl:{}, rewards:[], fs:0, hr:{st:'ready', left:0}, rl:{st:'ready', left:0}, pend:null, col:{}, mg:{best:0, games:0}, xp:0, dry:0, last:[], mis:null, ach:{}, stat:{spins:0,spent:0,kept:0,sold:0,cases:0,best:0,bestP:null,byRar:[0,0,0,0,0,0,0],upg:0,upgWin:0,frames:0,misDone:0}}; }
 var ACCEPT_UNSIGNED = false;  /* true на один релиз — принять старые сохранения без подписи */
 var SIG_SALT = 'gl7f3a91c2-nomera-9d41';
 function sigHash(str) {
@@ -96,9 +96,12 @@ try {
       S.cars = Array.isArray(parsed.cars) ? parsed.cars : [];
       S.ver = parsed.ver || 2;
       S.donate = Math.max(0, +parsed.donate || 0);
-      S.opened = Math.max(0, +parsed.opened || 0); S.opn = parsed.opn || {silver: S.opened}; S.free = parsed.free || {}; S.claimed = parsed.claimed || {}; S.dailyAt = +parsed.dailyAt || 0; S.dailyN = +parsed.dailyN || 0; S.adAt = +parsed.adAt || 0; S.adN = +parsed.adN || 0; S.xp = +parsed.xp || 0; S.dry = +parsed.dry || 0; S.last = Array.isArray(parsed.last) ? parsed.last : []; S.mis = parsed.mis || null; S.ach = parsed.ach || {}; S.stat = Object.assign(fresh().stat, parsed.stat || {}); if (!Array.isArray(S.stat.byRar) || S.stat.byRar.length < 7) S.stat.byRar = [0,0,0,0,0,0,0];
+      S.opened = Math.max(0, +parsed.opened || 0); S.opn = parsed.opn || {silver: S.opened}; S.free = parsed.free || {}; S.claimed = parsed.claimed || {}; S.dailyAt = +parsed.dailyAt || 0; S.dailyN = +parsed.dailyN || 0; S.adAt = +parsed.adAt || 0; S.adN = +parsed.adN || 0; S.adCl = (parsed.adCl && typeof parsed.adCl === 'object') ? parsed.adCl : {}; S.xp = +parsed.xp || 0; S.dry = +parsed.dry || 0; S.last = Array.isArray(parsed.last) ? parsed.last : []; S.mis = parsed.mis || null; S.ach = parsed.ach || {}; S.stat = Object.assign(fresh().stat, parsed.stat || {}); if (!Array.isArray(S.stat.byRar) || S.stat.byRar.length < 7) S.stat.byRar = [0,0,0,0,0,0,0];
       S.mg = (parsed.mg && typeof parsed.mg === 'object') ? parsed.mg : {best:0, games:0}; S.col = (parsed.col && typeof parsed.col === 'object') ? parsed.col : {};
-      S.rewards = (Array.isArray(parsed.rewards) ? parsed.rewards : []).filter(function (r) { return r && r.id && (r.type === 'donate' ? r.donate > 0 : r.type === 'case' && r.caseId); });
+      S.rewards = (Array.isArray(parsed.rewards) ? parsed.rewards : []).filter(function (r) { return r && r.id && (r.type === 'donate' ? r.donate > 0 : r.type === 'spins' ? r.n > 0 : r.type === 'case' && r.caseId); });
+      S.fs = Math.max(0, Math.floor(+parsed.fs || 0));
+      var ph = parsed.hr; S.hr = (ph && (ph.st === 'wait' || ph.st === 'inrew' || ph.st === 'ready')) ? {st: ph.st, left: Math.min(3600000, Math.max(0, +ph.left || 0))} : {st: 'ready', left: 0};
+      var pr = parsed.rl; S.rl = (pr && (pr.st === 'wait' || pr.st === 'inrew' || pr.st === 'ready')) ? {st: pr.st, left: Math.min(86400000, Math.max(0, +pr.left || 0))} : {st: 'ready', left: 0};
       if (COUNTRIES.some(function (c) { return c[0] === parsed.country; })) S.country = parsed.country;
       S.pend = (parsed.pend && typeof parsed.pend === 'object') ? parsed.pend : null;
     }
@@ -739,7 +742,8 @@ $('#cine').addEventListener('click', function () { skipC = true; });
 
 async function roll() {
   if (busy) return;
-  if (S.balance < SPIN) { toast('Не хватает ' + money(SPIN - S.balance)); return; }
+  var free = S.fs > 0;
+  if (!free && S.balance < SPIN) { toast('Не хватает ' + money(SPIN - S.balance)); return; }
   busy = true;
   try {
     if (cur) {
@@ -748,14 +752,15 @@ async function roll() {
       clearDrop(); $('#msg').textContent = 'Пропущено'; cur = null; S.pend = null;
       await sleep(500);
     }
-    S.balance -= SPIN; save(); refresh(); clearDrop();
+    if (free) S.fs--; else S.balance -= SPIN;
+    save(); refresh(); clearDrop();
     var res = spinGen(), frames = RM ? 1 : (res.rar >= 4 ? 16 : 12);
     S.pend = {k: 'plate', p: JSON.parse(JSON.stringify(res))}; save();
     for (var i = 0; i < frames; i++) { box.innerHTML = plateHTML(gen(S.country, true), 0, 'blur'); await sleep(i < 12 ? 40 + i * 10 : 220 + (i - 12) * 120); }
     cur = res;
     if (res.rar === 6) await cinematic(res); else { show(res); playFx(res); }
     if (res._boost) $('#msg').textContent = '🍀 Бонус удачи сработал!';
-    onSpin(res);
+    onSpin(res, free);
   } finally { busy = false; }
 }
 function show(p, opt) {
@@ -1377,7 +1382,7 @@ function dailyParts() { var t = Math.floor(dailyLeft() / 1000); return [pad2(Mat
 var RING_C = 603.19;
 function ringOffset() { return (RING_C * (dailyReady() ? 0 : dailyLeft() / DAY_MS)).toFixed(1); }
 function bonusAvailCount() { return BONUSES.reduce(function (a, b) { return a + bonusAvail(b); }, 0); }
-function updBonusBadge() { $('#cBon').hidden = !(bonusAvailCount() || dailyReady()); }
+function updBonusBadge() { $('#cBon').hidden = !(bonusAvailCount() || dailyReady() || adAvailCount() || refAvail() || S.rl.st === 'ready'); }
 function bTabBtn(id, ico, title, sub, badge) {
   return '<button type="button" class="btab' + (bTab === id ? ' on' : '') + '" data-btab="' + id + '"><span class="ti">' + ico + '</span><span class="tt"><b>' + title + '</b><small>' + sub + '</small></span>' + badge + '</button>';
 }
@@ -1447,6 +1452,24 @@ function adInit() {
   try { if (window.Adsgram) adCtl = window.Adsgram.init({blockId: AD_BLOCK_ID}); } catch (e) { adCtl = null; }
   return adCtl;
 }
+/* --- Награды за количество просмотров (повторяются: 10, 20, 30… просмотров) --- */
+var AD_TIERS = [
+  {id:'bronze', need:10, caseId:'bronze', title:'Бронзовая серия', sub:'Каждые 10 просмотренных роликов — «Бронзовый ключ» в подарок. Забирать можно снова и снова', rewardText:'🎁 Награда: 1 кейс «Бронзовый ключ»'},
+  {id:'gold', need:20, caseId:'gold', title:'Золотая серия', sub:'Каждые 20 просмотренных роликов — «Золотой ключ» в подарок. Забирать можно снова и снова', rewardText:'🎁 Награда: 1 кейс «Золотой ключ»'},
+  {id:'diamond', need:50, caseId:'diamond', title:'Алмазная серия', sub:'Каждые 50 просмотренных роликов — «Алмазный ключ» в подарок. Забирать можно снова и снова', rewardText:'🎁 Награда: 1 кейс «Алмазный ключ»'}
+];
+function adClaimed(d) { return (S.adCl && +S.adCl[d.id]) || 0; }
+function adTierAvail(d) { return Math.max(0, Math.floor((S.adN || 0) / d.need) - adClaimed(d)); }
+function adAvailCount() { if (!AD_TIERS) return 0; return AD_TIERS.reduce(function (a, d) { return a + adTierAvail(d); }, 0); }
+function adTierCards() {
+  return AD_TIERS.map(function (d, i) {
+    var cl = adClaimed(d), av = adTierAvail(d), n = Math.min(d.need, Math.max(0, (S.adN || 0) - cl * d.need));
+    return '<div class="card bn" style="animation-delay:' + ((i + 1) * 70) + 'ms">' + caseSVG(caseById(d.caseId)) + '<div class="bt"><h3>' + d.title + '</h3><div class="sub">' + d.sub + '</div>' +
+      '<div class="pbar"><i style="width:' + (n / d.need * 100) + '%"></i></div><div class="pn"><span>До следующей награды</span><span>' + n + ' / ' + d.need + '</span></div>' +
+      '<div class="rw">' + d.rewardText + (cl ? ' · получено раз: ' + cl : '') + '</div>' +
+      '<button type="button" class="btn sm" data-adtier="' + d.id + '"' + (av ? '' : ' disabled') + '>' + (av ? 'Забрать' + (av > 1 ? ' (ещё ' + av + ')' : '') : 'Не выполнено') + '</button></div></div>';
+  }).join('');
+}
 function adsPanel() {
   var left = adLeft(), off = left > 0 || adBusy;
   return '<div class="grid" style="grid-template-columns:1fr"><div class="card bn adc" style="--c:var(--gold)"><div class="adi">📺</div><div class="bt">' +
@@ -1455,9 +1478,22 @@ function adsPanel() {
     '<div class="rw">🪙 Награда: +' + AD_REWARD + ' доната за ролик</div>' +
     '<div class="pn"><span>Просмотрено роликов</span><span>' + (S.adN || 0) + '</span></div>' +
     '<button type="button" class="btn sm" id="adWatch"' + (off ? ' disabled' : '') + '>' + (adBusy ? 'Загрузка рекламы…' : left ? 'Следующий ролик через ' + adTime() : '▶ Смотреть рекламу') + '</button>' +
-    '</div></div></div>';
+    '</div></div>' + adTierCards() + '</div>';
 }
 document.addEventListener('click', function (e) {
+  var tr = e.target.closest('[data-adtier]');
+  if (tr && !tr.disabled) {
+    var d = AD_TIERS.filter(function (x) { return x.id === tr.dataset.adtier; })[0];
+    if (!d || !adTierAvail(d)) return;
+    var c = center(tr);
+    if (!S.adCl) S.adCl = {};
+    S.adCl[d.id] = adClaimed(d) + 1;
+    pushReward({type: 'case', caseId: d.caseId, n: 1, from: 'Реклама · ' + d.title});
+    save(); refresh();
+    sparks(c.x, c.y, 24, '#ffd24a'); burst(c.x, c.y, 50, GOLD, 1.1, true);
+    toast('Награда отправлена во вкладку «Награды» — заберите её там');
+    return;
+  }
   var b = e.target.closest('#adWatch');
   if (!b || b.disabled || adBusy || adLeft()) return;
   var ctl = adInit();
@@ -1485,16 +1521,99 @@ setInterval(function () {
   if (a) a.textContent = t;
   if (w && !adBusy) w.textContent = 'Следующий ролик через ' + t;
 }, 1000);
+/* ===== Друзья (реферальная система, сервер на Supabase) ===== */
+var REF_API = 'https://bsrdpworzwbuzhrqarse.supabase.co/functions/v1/referral';
+var REF_BOT = 'PlateSpin_bot';   /* имя бота без @ */
+var REF_APP = 'platespin_app';                /* короткое имя мини-приложения из BotFather (/myapps). Если пусто — ссылка вида t.me/бот?startapp= */
+var REF_REWARD = 10;             /* донат за каждого друга */
+var REF_NEED = 10;               /* сколько прокруток должен сделать друг (то же число, что в SQL) */
+var refInfo = {invited: 0, qualified: 0, claimable: 0, claimed: 0}, refRepDone = false, refRepLast = -1, refBusy = false;
+function tgW() { return window.Telegram && window.Telegram.WebApp; }
+function refOn() { var t = tgW(); return !!(t && t.initData); }
+function refAvail() { return (typeof refInfo !== 'undefined' && refInfo && refInfo.claimable) || 0; }
+function refUserId() { var t = tgW(); return t && t.initDataUnsafe && t.initDataUnsafe.user ? t.initDataUnsafe.user.id : 0; }
+function refLink() {
+  var id = refUserId(); if (!id) return '';
+  return 'https://t.me/' + REF_BOT + (REF_APP ? '/' + REF_APP : '') + '?startapp=ref_' + id;
+}
+function refPost(body) {
+  var t = tgW(); if (!t || !t.initData) return Promise.reject(new Error('no_tg'));
+  body.initData = t.initData;
+  return fetch(REF_API, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}).then(function (r) { return r.json(); });
+}
+function refSync() {
+  return refPost({action: 'status'}).then(function (r) {
+    if (!r || !r.ok) return;
+    refInfo = {invited: +r.invited || 0, qualified: +r.qualified || 0, claimable: +r.claimable || 0, claimed: +r.claimed || 0};
+    updBonusBadge();
+    if (view === 'bonus') renderBonus();
+  }).catch(function () {});
+}
+function refReport() {
+  var sp = (S.stat && S.stat.spins) || 0;
+  if (!refOn() || refRepDone || sp < 1 || sp === refRepLast) return;
+  refRepLast = sp;
+  refPost({action: 'progress', spins: sp}).then(function (r) { if (r && r.ok && sp >= REF_NEED) refRepDone = true; }).catch(function () { refRepLast = -1; });
+}
+function refInit() {
+  if (!refOn()) return;
+  var sp = (tgW().initDataUnsafe && tgW().initDataUnsafe.start_param) || '';
+  if (((S.stat && S.stat.spins) || 0) >= 3) sp = '';  /* уже играющий человек не считается новым другом */
+  refPost({action: 'register', ref: sp}).then(function () { refSync(); refReport(); }).catch(function () {});
+}
+function friendsPanel() {
+  var on = refOn(), i = refInfo;
+  return '<div class="grid" style="grid-template-columns:1fr"><div class="card bn adc" style="--c:var(--gold)"><div class="adi">👥</div><div class="bt">' +
+    '<h3>Пригласи друга</h3>' +
+    '<div class="sub">Отправь ссылку другу. Когда он зайдёт и сделает ' + REF_NEED + ' прокруток, ты получишь награду.</div>' +
+    '<div class="rw">🪙 Награда: +' + REF_REWARD + ' доната за каждого друга</div>' +
+    '<div class="pn"><span>Друзей пришло</span><span>' + i.invited + '</span></div>' +
+    '<div class="pn"><span>Выполнили условие</span><span>' + i.qualified + '</span></div>' +
+    '<button type="button" class="btn sm" id="refInvite"' + (on && refUserId() ? '' : ' disabled') + '>👥 Пригласить друга</button>' +
+    (i.claimable ? '<button type="button" class="btn sm" id="refClaim">🎁 Забрать +' + (i.claimable * REF_REWARD) + ' 🪙</button>' : '') +
+    (on ? '' : '<div class="sub">Откройте игру в Telegram, чтобы приглашать друзей.</div>') +
+    '</div></div></div>';
+}
+document.addEventListener('click', function (e) {
+  if (e.target.closest('[data-btab="friends"]')) { refSync(); return; }
+  var inv = e.target.closest('#refInvite');
+  if (inv && !inv.disabled) {
+    var link = refLink(); if (!link) return;
+    var txt = 'Заходи в Plate Spin: выбивай редкие номера и открывай кейсы!';
+    var url = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(txt);
+    var t = tgW();
+    if (t && t.openTelegramLink) t.openTelegramLink(url);
+    else { try { navigator.clipboard.writeText(link); toast('Ссылка скопирована'); } catch (er) { toast(link); } }
+    return;
+  }
+  var cl = e.target.closest('#refClaim');
+  if (!cl || refBusy) return;
+  refBusy = true; var pt = center(cl);
+  refPost({action: 'claim'}).then(function (r) {
+    refBusy = false;
+    var n = r && r.ok ? (+r.claimed || 0) : 0;
+    if (!n) { toast('Пока нечего забирать'); refSync(); return; }
+    pushReward({type: 'donate', donate: REF_REWARD * n, from: 'Приглашённые друзья ×' + n});
+    save(); refresh(); refSync();
+    sparks(pt.x, pt.y, 24, '#ffd24a'); burst(pt.x, pt.y, 50, GOLD, 1.1, true);
+    toast('Награда отправлена во вкладку «Награды» — заберите её там');
+  }).catch(function () { refBusy = false; toast('Нет связи с сервером. Попробуйте позже'); });
+});
+setTimeout(refInit, 1000);
+setInterval(function () { if (!refOn()) return; refReport(); if (view === 'bonus' && bTab === 'friends') refSync(); }, 15000);
 function renderBonus() {
   updBonusBadge();
-  if (view !== 'bonus') return;
+  if (view !== 'bonus' || rlBusy) return;
   var n = bonusAvailCount(), d = dailyReady();
   var h = '<h2>Бонусы</h2>' + (S.rewards.length ? '<div class="rbanner"><span>🎁 В «Наградах» ждёт получения: <b>' + S.rewards.length + '</b></span><button type="button" class="btn sm" data-view="rewards">Забрать</button></div>' : '') + '<div class="btabs">' +
     bTabBtn('reg', '🎁', 'Обычные', 'Награды за открытые кейсы', n ? '<span class="tb hot">' + n + '</span>' : '') +
+    bTabBtn('hour', '🎰', 'Каждый час', '2 бесплатных прокрута номеров', S.hr.st !== 'wait' ? '<span class="tb hot">!</span>' : '<span class="tb" id="hTabT">' + hrParts().join(':') + '</span>') +
+    bTabBtn('roul', '🎡', 'Рулетка', 'Раз в 24 часа, приз гарантирован', S.rl.st !== 'wait' ? '<span class="tb hot">!</span>' : '<span class="tb" id="rTabT">' + rlParts().join(':') + '</span>') +
     bTabBtn('daily', '☀️', 'Ежедневные', '30 дней наград, раз в 24 часа', d ? '<span class="tb hot">!</span>' : '<span class="tb" id="dTabT">' + dailyParts().join(':') + '</span>') +
-    bTabBtn('ads', '📺', 'За рекламу', 'Смотри ролики и получай награды', adLeft() ? '<span class="tb" id="adTabT">' + adTime() + '</span>' : '<span class="tb hot">+' + AD_REWARD + ' 🪙</span>') +
+    bTabBtn('ads', '📺', 'За рекламу', 'Смотри ролики и получай награды', adAvailCount() ? '<span class="tb hot">' + adAvailCount() + '</span>' : adLeft() ? '<span class="tb" id="adTabT">' + adTime() + '</span>' : '<span class="tb hot">+' + AD_REWARD + ' 🪙</span>') +
+    bTabBtn('friends', '👥', 'Друзья', 'Приглашай друзей и получай награды', refAvail() ? '<span class="tb hot">' + refAvail() + '</span>' : '') +
     '</div>' +
-    '<div class="bpanel' + (bAnim ? ' in' : '') + '">' + (bTab === 'reg' ? regPanel() : bTab === 'ads' ? adsPanel() : dailyPanel()) + '</div>';
+    '<div class="bpanel' + (bAnim ? ' in' : '') + '">' + (bTab === 'reg' ? regPanel() : bTab === 'hour' ? hourPanel() : bTab === 'roul' ? roulettePanel() : bTab === 'ads' ? adsPanel() : bTab === 'friends' ? friendsPanel() : dailyPanel()) + '</div>';
   $('#v-bonus').innerHTML = h; bAnim = false;
   if (dlyPop) { dlyPop = false; requestAnimationFrame(function () { requestAnimationFrame(function () { var r = $('#dRing'); if (r) r.style.strokeDashoffset = ringOffset(); }); }); }
 }
@@ -1537,13 +1656,122 @@ setInterval(function () {
   var ring = $('#dRing'); if (ring) ring.style.strokeDashoffset = ringOffset();
 }, 1000);
 
+/* ===== Почасовой бонус: 2 бесплатных прокрута номеров =====
+   Время считается ВНУТРИ игры по performance.now() (монотонный таймер, не зависит от часов телефона),
+   идёт только пока игра открыта. Таймер часа запускается, когда игрок ЗАБРАЛ награду во вкладке «Награды». */
+var HR_MS = 3600000, HR_SPINS = 2, hrT = performance.now(), hrN = 0, rlNew = false;
+function hrHasRew() { return S.rewards.some(function (r) { return r.type === 'spins' && !r.rl; }); }
+function hrLeft() { return S.hr.st === 'wait' ? Math.max(0, S.hr.left) : 0; }
+function hrParts() { var t = Math.ceil(hrLeft() / 1000); return [pad2(Math.floor(t / 60)), pad2(t % 60)]; }
+function hrOffset() { return (RING_C * (S.hr.st === 'wait' ? hrLeft() / HR_MS : 0)).toFixed(1); }
+function hrStep() {  /* возвращает true, если прокруты только что появились в «Наградах» */
+  var n = performance.now(), d = n - hrT, h = S.hr, pushed = false; hrT = n; if (!(d > 0)) d = 0;
+  if (h.st === 'wait') { h.left -= d; if (h.left <= 0) { h.left = 0; h.st = 'ready'; } }
+  var q = S.rl;
+  if (q.st === 'wait') { q.left -= d; if (q.left <= 0) { q.left = 0; q.st = 'ready'; rlNew = true; } }
+  else if (q.st === 'inrew' && !S.rewards.some(function (r) { return r.rl; })) q.st = 'ready';
+  if (h.st === 'ready') { pushReward({type: 'spins', n: HR_SPINS, from: 'Каждый час'}); h.st = 'inrew'; pushed = true; }
+  else if (h.st === 'inrew' && !hrHasRew()) { pushReward({type: 'spins', n: HR_SPINS, from: 'Каждый час'}); pushed = true; }
+  return pushed;
+}
+function hourPanel() {
+  var inr = S.hr.st !== 'wait', p = hrParts(), nr = S.rewards.length;
+  var tm = inr ? '<div class="dly-ok">✨ Прокруты ждут в «Наградах»!</div>' :
+    '<div class="tm"><b id="hM">' + p[0] + '</b><small>минут</small></div><i>:</i><div class="tm"><b id="hS">' + p[1] + '</b><small>секунд</small></div>';
+  return '<div class="dly ' + (inr ? 'ready' : 'wait') + '"><div class="dly-rays"></div>' +
+    '<div class="dly-ring"><svg viewBox="0 0 220 220"><circle class="rg-bg" cx="110" cy="110" r="96"/><circle class="rg" id="hRing" cx="110" cy="110" r="96" stroke-dasharray="' + RING_C + '" stroke-dashoffset="' + hrOffset() + '" transform="rotate(-90 110 110)"/></svg>' +
+    '<div class="dly-chest hr-ico">🎰</div></div>' +
+    '<h3>Каждый час · ' + HR_SPINS + ' бесплатных прокрута</h3>' +
+    '<p class="dly-sub">' + (inr ? 'Забери прокруты во вкладке «Награды» — после этого запустится таймер на следующий час.' : 'Таймер идёт, пока игра открыта. До следующих прокрутов осталось:') + '</p>' +
+    '<div class="dly-tm">' + tm + '</div>' +
+    (inr ? '<button type="button" class="dbtn" data-view="rewards">🎁 Забрать в «Наградах»</button>' : '<button type="button" class="dbtn" disabled>Ещё не время</button>') +
+    '<div class="dly-stat"><span>Бесплатных прокрутов: <b>' + (S.fs || 0) + '</b></span><span>В «Наградах» ждёт: <b>' + nr + '</b></span></div></div>';
+}
+setInterval(function () {
+  var pushed = hrStep();
+  if (rlNew) { rlNew = false; save(); updBonusBadge(); if (view === 'bonus') renderBonus(); toast('🎡 Рулетка готова! Крути в «Бонусах»'); }
+  if (pushed) { save(); refresh(); if (!(view === 'rewards')) toast('🎰 Бесплатные прокруты готовы! Забери их в «Наградах»'); return; }
+  if ((S.hr.st === 'wait' || S.rl.st === 'wait') && ++hrN % 10 === 0) save();
+  if (view !== 'bonus') return;
+  var rp = rlParts(), rt = $('#rTabT'); if (rt) rt.textContent = rp.join(':');
+  if (bTab === 'roul') { ['rlH', 'rlM', 'rlS'].forEach(function (id, i) { var el = $('#' + id); if (el && el.textContent !== rp[i]) { el.textContent = rp[i]; el.classList.remove('tk'); void el.offsetWidth; el.classList.add('tk'); } }); }
+  var p = hrParts(), t = $('#hTabT'); if (t) t.textContent = p.join(':');
+  if (bTab !== 'hour') return;
+  var m = $('#hM'), sc = $('#hS'); if (m) m.textContent = p[0];
+  if (sc && sc.textContent !== p[1]) { sc.textContent = p[1]; sc.classList.remove('tk'); void sc.offsetWidth; sc.classList.add('tk'); }
+  var rg = $('#hRing'); if (rg) rg.style.strokeDashoffset = hrOffset();
+}, 1000);
+document.addEventListener('visibilitychange', function () { if (document.hidden) { if (hrStep()) refresh(); save(); } else hrT = performance.now(); });
+window.addEventListener('pagehide', function () { hrStep(); save(); });
+hrStep();
+
+/* ===== Рулетка раз в 24 часа (средние призы) =====
+   Результат определяется в момент нажатия и сразу кладётся в «Награды» (перезагрузкой страницы не перекрутить).
+   Таймер на 24 часа идёт по внутреннему монотонному таймеру и стартует после получения приза в «Наградах». */
+var RL_MS = 24 * 3600 * 1000, rlBusy = false, rlRot = 0;
+var RL = [
+  {t:'d', n:10, w:30, ic:'🪙', lb:'+10', col:'#2a2f3a'},
+  {t:'c', id:'bronze', n:1, w:22, ic:'🎁', lb:'Бронза', col:'#3b2a1c'},
+  {t:'d', n:15, w:16, ic:'🪙', lb:'+15', col:'#2a2f3a'},
+  {t:'s', n:3, w:14, ic:'🎰', lb:'×3', col:'#1d3a2c'},
+  {t:'c', id:'silver', n:1, w:9, ic:'🎁', lb:'Серебро', col:'#2f3542'},
+  {t:'d', n:25, w:6, ic:'🪙', lb:'+25', col:'#3a3216'},
+  {t:'s', n:5, w:2, ic:'🎰', lb:'×5', col:'#1d3a2c'},
+  {t:'d', n:40, w:1, ic:'🪙', lb:'+40', col:'#4a3a10'}
+];
+function rlParts() { var t = Math.ceil(Math.max(0, S.rl.left) / 1000); return [pad2(Math.floor(t / 3600)), pad2(Math.floor(t % 3600 / 60)), pad2(t % 60)]; }
+function rlPick() { var tot = RL.reduce(function (a, x) { return a + x.w; }, 0), x = Math.random() * tot, i; for (i = 0; i < RL.length; i++) { x -= RL[i].w; if (x < 0) return i; } return 0; }
+function rlReward(pz) {
+  var r = pz.t === 'd' ? {type: 'donate', donate: pz.n} : pz.t === 'c' ? {type: 'case', caseId: pz.id, n: pz.n} : {type: 'spins', n: pz.n};
+  r.from = 'Рулетка'; r.rl = 1; return r;
+}
+function rlWheelSVG() {
+  var n = RL.length, step = 360 / n, R = 140, C = 150, out = '<svg viewBox="0 0 300 300">';
+  function pt(deg, rad) { var a = deg * Math.PI / 180; return (C + rad * Math.sin(a)).toFixed(1) + ' ' + (C - rad * Math.cos(a)).toFixed(1); }
+  RL.forEach(function (z, i) {
+    var a0 = i * step, a1 = (i + 1) * step, mid = a0 + step / 2;
+    out += '<path d="M' + C + ' ' + C + ' L' + pt(a0, R) + ' A' + R + ' ' + R + ' 0 0 1 ' + pt(a1, R) + ' Z" fill="' + z.col + '" stroke="#ffd24a" stroke-opacity=".55" stroke-width="1.5"/>' +
+      '<g transform="rotate(' + mid + ' ' + C + ' ' + C + ')"><text x="' + C + '" y="' + (C - 98) + '" text-anchor="middle" font-size="26">' + z.ic + '</text>' +
+      '<text x="' + C + '" y="' + (C - 70) + '" text-anchor="middle" font-size="15" font-weight="700" fill="#fff" font-family="Oswald,sans-serif">' + z.lb + '</text></g>';
+  });
+  return out + '<circle cx="' + C + '" cy="' + C + '" r="22" fill="#101216" stroke="#ffd24a" stroke-width="3"/><circle cx="' + C + '" cy="' + C + '" r="140" fill="none" stroke="#ffd24a" stroke-width="4"/></svg>';
+}
+function roulettePanel() {
+  var st = S.rl.st, p = rlParts(), rw = S.rewards.filter(function (r) { return r.rl; })[0], info, btn;
+  if (st === 'ready') { info = 'Крути колесо — приз гарантирован и упадёт в «Награды». Таймер на следующие 24 часа запустится, когда заберёшь приз.'; btn = '<button type="button" class="dbtn" id="rlSpin">🎡 Крутить рулетку</button>'; }
+  else if (st === 'inrew') { info = 'Твой приз: <b style="color:var(--gold)">' + (rw ? rewTitle(rw) : '') + '</b>. Забери его в «Наградах» — после этого запустится таймер на 24 часа.'; btn = '<button type="button" class="dbtn" data-view="rewards">🎁 Забрать в «Наградах»</button>'; }
+  else { info = 'Следующая попытка через:'; btn = '<button type="button" class="dbtn" disabled>Ещё не время</button>'; }
+  var tm = st === 'wait' ? '<div class="dly-tm"><div class="tm"><b id="rlH">' + p[0] + '</b><small>часов</small></div><i>:</i><div class="tm"><b id="rlM">' + p[1] + '</b><small>минут</small></div><i>:</i><div class="tm"><b id="rlS">' + p[2] + '</b><small>секунд</small></div></div>' : '';
+  return '<div class="dly rl-box ' + (st === 'wait' ? 'wait' : 'ready') + '"><div class="dly-rays"></div>' +
+    '<div class="rl-wrap"><div class="rl-ptr"></div><div class="rl-wheel" id="rlWheel" style="transform:rotate(' + rlRot + 'deg)">' + rlWheelSVG() + '</div></div>' +
+    '<h3>Рулетка · раз в 24 часа</h3><p class="dly-sub">' + info + '</p>' + tm + btn +
+    '<div class="rl-prizes">' + RL.map(function (z) { return '<span>' + z.ic + ' ' + (z.t === 'd' ? z.lb + ' доната' : z.t === 'c' ? 'Ключ «' + z.lb + '»' : z.n + ' беспл. прокрута') + '</span>'; }).join('') + '</div></div>';
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('#rlSpin');
+  if (!b || b.disabled || rlBusy || S.rl.st !== 'ready') return;
+  var i = rlPick(), pz = RL[i], rw = rlReward(pz);
+  pushReward(rw); S.rl.st = 'inrew'; save();  /* результат зафиксирован ДО анимации */
+  rlBusy = true; b.disabled = true;
+  var w = $('#rlWheel'), step = 360 / RL.length, jit = (Math.random() - .5) * step * .6;
+  var target = -(i + .5) * step + jit, delta = (((target - rlRot) % 360) + 360) % 360;
+  rlRot += 360 * 5 + delta;
+  w.style.transition = RM ? 'none' : 'transform 5s cubic-bezier(.12,.6,.1,1)'; w.style.transform = 'rotate(' + rlRot + 'deg)';
+  setTimeout(function () {
+    var c = center(w); rlBusy = false;
+    flash('#ffd24a', .4); burst(c.x, c.y, 120, GOLD, 1.3, true); sparks(c.x, c.y, 30, '#ffd24a');
+    refresh(); toast('Выпало: ' + rewTitle(rw) + '. Приз — во вкладке «Награды»');
+  }, RM ? 50 : 5200);
+});
+
 /* ===== Награды (все бонусы сначала попадают сюда) ===== */
 var rAnim = false, rBusy = false;
 function pushReward(r) { r.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); r.at = Date.now(); S.rewards.push(r); }
 function pendingOf(caseId) { return S.rewards.reduce(function (a, r) { return a + (r.type === 'case' && r.caseId === caseId ? (r.n || 1) : 0); }, 0); }
 function caseById(id) { return CASES.filter(function (c) { return c.id === id; })[0]; }
-function rewTitle(r) { if (r.type === 'donate') return '+' + r.donate + ' доната'; var c = caseById(r.caseId); return (c ? c.name : 'Кейс') + (r.n > 1 ? ' ×' + r.n : ''); }
+function rewTitle(r) { if (r.type === 'spins') return '🎰 ' + r.n + ' ' + pl(r.n, 'бесплатный прокрут', 'бесплатных прокрута', 'бесплатных прокрутов'); if (r.type === 'donate') return '+' + r.donate + ' доната'; var c = caseById(r.caseId); return (c ? c.name : 'Кейс') + (r.n > 1 ? ' ×' + r.n : ''); }
 function rewImg(r) {
+  if (r.type === 'spins') return '<div class="rc-spin-ico">🎰</div>';
   if (r.type === 'donate') return '<img class="rc-coin" src="' + $('#donBox img').src + '" alt="" draggable="false">';
   return caseSVG(caseById(r.caseId));
 }
@@ -1559,15 +1787,20 @@ function renderRewards() {
       (n > 1 ? '<button type="button" class="dbtn rall" id="rcAll">✨ Забрать всё</button>' : '') + '</div>' +
       '<div class="rlist' + (rAnim ? ' in' : '') + '">' + S.rewards.slice().reverse().map(function (r, i) {
         var when = new Date(r.at).toLocaleString('ru-RU', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
-        return '<div class="card rc ' + (r.type === 'donate' ? 'rc-don' : 'rc-case') + '" data-rid="' + r.id + '" style="animation-delay:' + (i * 60) + 'ms"><div class="rc-img">' + rewImg(r) + '</div>' +
+        return '<div class="card rc ' + (r.type === 'spins' ? 'rc-spin' : r.type === 'donate' ? 'rc-don' : 'rc-case') + '" data-rid="' + r.id + '" style="animation-delay:' + (i * 60) + 'ms"><div class="rc-img">' + rewImg(r) + '</div>' +
           '<div class="rc-tx"><h3>' + rewTitle(r) + '</h3><div class="sub">' + (r.from || 'Награда') + ' · ' + when + '</div>' +
-          '<div class="rc-dest">' + (r.type === 'donate' ? '→ добавится к донату' : '→ появится в «Кейсах»') + '</div></div>' +
+          '<div class="rc-dest">' + (r.type === 'spins' ? '→ бесплатные прокруты на вкладке «Выпадение»' : r.type === 'donate' ? '→ добавится к донату' : '→ появится в «Кейсах»') + '</div></div>' +
           '<button type="button" class="btn sm rc-btn" data-rcollect="' + r.id + '">Забрать</button></div>';
       }).join('') + '</div>';
   }
   $('#v-rewards').innerHTML = h; rAnim = false;
 }
-function applyReward(r) { if (r.type === 'donate') addDonate(r.donate); else S.free[r.caseId] = (S.free[r.caseId] || 0) + (r.n || 1); }
+function applyReward(r) {
+  if (r.rl) { S.rl = {st: 'wait', left: RL_MS}; hrT = performance.now(); }  /* таймер рулетки стартует после получения приза */
+  if (r.type === 'donate') addDonate(r.donate);
+  else if (r.type === 'spins') { S.fs = (S.fs || 0) + r.n; if (!r.rl) { S.hr = {st: 'wait', left: HR_MS}; hrT = performance.now(); } }  /* таймер часа стартует только после получения награды */
+  else S.free[r.caseId] = (S.free[r.caseId] || 0) + (r.n || 1);
+}
 document.addEventListener('click', function (e) {
   var one = e.target.closest('[data-rcollect]'), all = e.target.closest('#rcAll');
   if ((!one && !all) || rBusy) return;
@@ -1580,16 +1813,16 @@ document.addEventListener('click', function (e) {
     setTimeout(function () { el.classList.add('fly'); burst(c.x, c.y, all ? 45 : 80, GOLD, 1.1, true); sparks(c.x, c.y, 16, '#ffd24a'); }, i * 90);
   });
   setTimeout(function () {
-    var cases = 0, don = 0;
+    var cases = 0, don = 0, spn = 0;
     ids.forEach(function (id) {
       var k = S.rewards.findIndex(function (r) { return r.id === id; });
       if (k < 0) return;
       var r = S.rewards.splice(k, 1)[0]; applyReward(r);
-      if (r.type === 'donate') don += r.donate; else cases += r.n || 1;
+      if (r.type === 'donate') don += r.donate; else if (r.type === 'spins') spn += r.n; else cases += r.n || 1;
     });
     save(); rBusy = false; refresh();
     if (all) flash('#ffd24a', .35);
-    var parts = []; if (cases) parts.push(cases + ' ' + (cases === 1 ? 'кейс' : 'кейса') + ' — в «Кейсах»'); if (don) parts.push('+' + don + ' доната');
+    var parts = []; if (cases) parts.push(cases + ' ' + (cases === 1 ? 'кейс' : 'кейса') + ' — в «Кейсах»'); if (don) parts.push('+' + don + ' доната'); if (spn) parts.push('🎰 +' + spn + ' ' + pl(spn, 'прокрут', 'прокрута', 'прокрутов') + ' (таймер часа пошёл)');
     toast('Получено: ' + parts.join(', '));
   }, (els.length ? (els.length - 1) * 90 : 0) + 520);
 });
@@ -1700,8 +1933,8 @@ function spinGen() {
   if (S.dry >= 13) { var best = null, g, i; for (i = 0; i < PITY_N; i++) { g = gen(S.country); if (!best || g.price > best.price) best = g; } best._boost = true; return best; }
   return gen(S.country);
 }
-function onSpin(p) {
-  var st = S.stat; st.spins++; st.spent += SPIN; st.byRar[p.rar]++;
+function onSpin(p, free) {
+  var st = S.stat; st.spins++; if (!free) st.spent += SPIN; st.byRar[p.rar]++;
   var lp = JSON.parse(JSON.stringify(p)); delete lp.frame; delete lp._boost;
   if (p.price > st.best) { st.best = p.price; st.bestP = lp; }
   S.last.unshift(lp); S.last = S.last.slice(0, 3);
@@ -1785,7 +2018,7 @@ function renderRing() {
 }
 function renderDropExtras() {
   if (!$('#shelf')) return;
-  $('#roll').textContent = 'Выбить номер · ' + money(SPIN); $('#roll10').textContent = '×10 · ' + money(SPIN * 10);
+  $('#roll').textContent = S.fs > 0 ? '🎰 Бесплатный прокрут · осталось ' + S.fs : 'Выбить номер · ' + money(SPIN); $('#roll').classList.toggle('free', S.fs > 0); $('#roll10').textContent = '×10 · ' + money(SPIN * 10);
   var full = S.dry >= 13; $('#roll').classList.toggle('lucky', full);
   var sh = '<div class="shl">Последние выпавшие</div><div class="shr">';
   for (var i = 0; i < 3; i++) { var p = S.last[i]; sh += p ? '<div class="shc" style="--c:' + RAR[p.rar][1] + '">' + plateHTML(p, 1) + '<small>' + RAR[p.rar][0] + ' · ' + money(p.price) + '</small></div>' : '<div class="shc empty"><small>пусто</small></div>'; }
