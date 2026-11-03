@@ -75,7 +75,7 @@ var BODY = {
 };
 
 /* ===== Состояние и сохранение ===== */
-function fresh() { return {balance:250000, inv:[], cars:[], country:'RU', ver:3, donate:0, opened:0, opn:{}, free:{}, claimed:{}, dailyAt:0, dailyN:0, adAt:0, adN:0, adCl:{}, rewards:[], fs:0, hr:{st:'ready', left:0}, rl:{st:'ready', left:0}, pend:null, col:{}, mg:{best:0, games:0}, xp:0, dry:0, last:[], mis:null, pass:null, ach:{}, stat:{spins:0,spent:0,kept:0,sold:0,cases:0,best:0,bestP:null,byRar:[0,0,0,0,0,0,0],upg:0,upgWin:0,frames:0,misDone:0}}; }
+function fresh() { return {balance:250000, inv:[], cars:[], country:'RU', ver:3, donate:0, opened:0, opn:{}, free:{}, claimed:{}, dailyAt:0, dailyN:0, adAt:0, adN:0, adCl:{}, promo:{}, rewards:[], fs:0, hr:{st:'ready', left:0}, rl:{st:'ready', left:0}, pend:null, col:{}, mg:{best:0, games:0}, xp:0, dry:0, last:[], mis:null, pass:null, ach:{}, stat:{spins:0,spent:0,kept:0,sold:0,cases:0,best:0,bestP:null,byRar:[0,0,0,0,0,0,0],upg:0,upgWin:0,frames:0,misDone:0}}; }
 var ACCEPT_UNSIGNED = false;  /* true на один релиз — принять старые сохранения без подписи */
 var SIG_SALT = 'gl7f3a91c2-nomera-9d41';
 function sigHash(str) {
@@ -96,7 +96,7 @@ try {
       S.cars = Array.isArray(parsed.cars) ? parsed.cars : [];
       S.ver = parsed.ver || 2;
       S.donate = Math.max(0, +parsed.donate || 0);
-      S.opened = Math.max(0, +parsed.opened || 0); S.opn = parsed.opn || {silver: S.opened}; S.free = parsed.free || {}; S.claimed = parsed.claimed || {}; S.dailyAt = +parsed.dailyAt || 0; S.dailyN = +parsed.dailyN || 0; S.adAt = +parsed.adAt || 0; S.adN = +parsed.adN || 0; S.adCl = (parsed.adCl && typeof parsed.adCl === 'object') ? parsed.adCl : {}; S.xp = +parsed.xp || 0; S.dry = +parsed.dry || 0; S.last = Array.isArray(parsed.last) ? parsed.last : []; S.mis = parsed.mis || null; S.pass = (parsed.pass && typeof parsed.pass === 'object') ? parsed.pass : null; S.ach = parsed.ach || {}; S.stat = Object.assign(fresh().stat, parsed.stat || {}); if (!Array.isArray(S.stat.byRar) || S.stat.byRar.length < 7) S.stat.byRar = [0,0,0,0,0,0,0];
+      S.opened = Math.max(0, +parsed.opened || 0); S.opn = parsed.opn || {silver: S.opened}; S.free = parsed.free || {}; S.claimed = parsed.claimed || {}; S.dailyAt = +parsed.dailyAt || 0; S.dailyN = +parsed.dailyN || 0; S.adAt = +parsed.adAt || 0; S.adN = +parsed.adN || 0; S.adCl = (parsed.adCl && typeof parsed.adCl === 'object') ? parsed.adCl : {}; S.promo = (parsed.promo && typeof parsed.promo === 'object') ? parsed.promo : {}; S.xp = +parsed.xp || 0; S.dry = +parsed.dry || 0; S.last = Array.isArray(parsed.last) ? parsed.last : []; S.mis = parsed.mis || null; S.pass = (parsed.pass && typeof parsed.pass === 'object') ? parsed.pass : null; S.ach = parsed.ach || {}; S.stat = Object.assign(fresh().stat, parsed.stat || {}); if (!Array.isArray(S.stat.byRar) || S.stat.byRar.length < 7) S.stat.byRar = [0,0,0,0,0,0,0];
       S.mg = (parsed.mg && typeof parsed.mg === 'object') ? parsed.mg : {best:0, games:0}; S.col = (parsed.col && typeof parsed.col === 'object') ? parsed.col : {};
       S.rewards = (Array.isArray(parsed.rewards) ? parsed.rewards : []).filter(function (r) { return r && r.id && (r.type === 'donate' ? r.donate > 0 : r.type === 'spins' ? r.n > 0 : r.type === 'case' && r.caseId); });
       S.fs = Math.max(0, Math.floor(+parsed.fs || 0));
@@ -954,13 +954,13 @@ function refresh() {
   if (view === 'garage') renderGarage();
   if (view === 'cases') renderCases();
   renderCollection(); if (view === 'frames') renderFrames(); if (view === 'minigames') renderMini();
-  renderBonus(); renderRewards();
+  renderBonus(); renderRewards(); if (view === 'donate') renderDonate();
 }
 function toggleMenu(open) {
   $('#side').classList.toggle('open', open); $('#overlay').classList.toggle('on', open);
 }
 function go(v) {
-  view = v; if (v === 'bonus') bAnim = true; if (v === 'collection') colAnim = true; if (v === 'frames') frAnim = true; if (v === 'pass') passAnim = true;  if (v === 'rewards') rAnim = true;
+  view = v; if (v === 'bonus') bAnim = true; if (v === 'collection') colAnim = true; if (v === 'frames') frAnim = true; if (v === 'pass') passAnim = true;  if (v === 'rewards') rAnim = true; if (v === 'donate') dnAnim = true;
   document.querySelectorAll('section').forEach(function (s) { s.classList.toggle('active', s.id === 'v-' + v); });
   document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('active', b.dataset.view === v); });
   toggleMenu(false); refresh();
@@ -2481,7 +2481,187 @@ function PROGRESS_INIT() {
   }, 1000);
   document.querySelector('#countries').addEventListener('click', function () { setTimeout(function () { oddsFor(S.country); renderDropExtras(); }, 0); });
 }
+/* ===== Донат: как получить, обмен на ₽, промокоды ===== */
+var DON_RATE = 2000;   /* 1 донат = 2 000 ₽ на баланс */
+/* Промокоды. ПРИМЕРЫ — замени на свои. Ключ — код ЗАГЛАВНЫМИ буквами без пробелов.
+   d — донат (придёт во вкладку «Награды»), c — id кейса (придёт в «Награды»), m — ₽ сразу на баланс.
+   Каждый код активируется один раз на игрока. Внимание: игра целиком на клиенте, коды видны в этом файле. */
+var PROMOS = {
+  'PLATESPIN': {d: 20},
+  'WELCOME': {m: 100000},
+  'FIRSTKEY': {c: 'bronze'}
+};
+var dnTab = 'main', dnAnim = false, dnNote = null;
+function dnEsc(t) { return String(t).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
+function dnCoin() { return '<img class="dn-coin" src="' + coinImg() + '" alt="" draggable="false">'; }
+function dnSources() {
+  var cd = COLS.map(function (c) { return c.donate; }), lo = Math.min.apply(null, cd), hi = Math.max.apply(null, cd);
+  return [
+    ['📺', 'Просмотр рекламы', '+' + AD_REWARD + ' доната за каждый досмотренный ролик и дополнительные награды за серии просмотров', 'bonus:ads'],
+    ['👥', 'Приглашение друзей', '+' + REF_REWARD + ' доната за каждого друга, который зашёл по твоей ссылке', 'bonus:friends'],
+    ['☀️', 'Ежедневные награды', '30 дней подарков, забирать можно раз в 24 часа', 'bonus:daily'],
+    ['🎡', 'Рулетка', 'Раз в 24 часа, приз гарантирован — в призах есть донат', 'bonus:roul'],
+    ['🎁', 'Награды за кейсы', 'Бонусы за открытые кейсы, в том числе донат за серию «Алмазный ключ»', 'bonus:reg'],
+    ['📚', 'Коллекция номеров', 'От ' + lo.toLocaleString('ru-RU') + ' до ' + hi.toLocaleString('ru-RU') + ' доната за каждую собранную коллекцию', 'collection'],
+    ['🎯', 'Миссии', 'Ежедневные и недельные задания с наградой в донате', 'missions'],
+    ['⭐', 'Уровни и достижения', 'За каждый новый уровень — 5 × номер уровня доната, плюс награды за достижения', 'profile'],
+    ['🎟', 'Spin Pass', 'Донат на уровнях пасса — выполняй задания и повышай уровень', 'pass']
+  ];
+}
+function dnMainPanel() {
+  var src = dnSources().map(function (x) {
+    return '<div class="dn-src"><span class="dn-ic">' + x[0] + '</span><div class="dn-tx"><b>' + x[1] + '</b><small>' + x[2] + '</small></div>' +
+      '<button type="button" class="btn sm alt dn-go" data-dngo="' + x[3] + '">Перейти</button></div>';
+  }).join('');
+  return '<p class="adsub">Донат — особая валюта. Его можно потратить в «Магазине» на рамки для номеров, на Spin Pass Gold или обменять на ₽.</p>' +
+    '<div class="card dn-card"><h3>Как получить донат</h3><div class="dn-list">' + src + '</div>' +
+      '<div class="dn-src"><span class="dn-ic">🎟</span><div class="dn-tx"><b>Промокоды</b><small>Введи промокод во вкладке «Промокод» и получи награду</small></div>' +
+      '<button type="button" class="btn sm alt dn-go" data-dntab="promo">Ввести</button></div></div>' +
+    '<div class="card dn-card dn-ex"><h3>Обмен доната на ₽</h3>' +
+      '<div class="dn-row"><span>Твой донат</span><b>' + dnCoin() + '<span id="exHave">' + Number(S.donate || 0).toLocaleString('ru-RU') + '</span></b></div>' +
+      '<div class="dn-rate">Курс: 1 ' + dnCoin() + ' = <b>' + money(DON_RATE) + '</b> на баланс</div>' +
+      '<input id="exIn" class="dn-in" type="number" inputmode="numeric" min="1" step="1" autocomplete="off" placeholder="Сколько доната обменять">' +
+      '<div class="dn-quick"><button type="button" data-exq="1">1</button><button type="button" data-exq="10">10</button><button type="button" data-exq="100">100</button><button type="button" data-exq="all">Всё</button></div>' +
+      '<div class="dn-prev" id="exPrev"></div>' +
+      '<button type="button" class="btn" id="exGo" disabled>Обменять</button></div>';
+}
+function dnPromoPanel() {
+  var used = Object.keys(S.promo || {});
+  return '<div class="card dn-card dn-promo"><h3>Промокод</h3>' +
+    '<p class="adsub" style="margin:0">Введи промокод и нажми «Активировать». Каждый промокод можно использовать один раз.</p>' +
+    '<input id="pcIn" class="dn-in" type="text" maxlength="32" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Введи промокод">' +
+    '<button type="button" class="btn" id="pcGo">Активировать</button>' +
+    '<div class="dn-msg' + (dnNote ? ' ' + dnNote.k : '') + '" id="pcMsg" aria-live="polite">' + (dnNote ? dnEsc(dnNote.x) : '') + '</div>' +
+    (used.length ? '<div class="dn-used">Уже активированы: ' + used.map(function (c) { return '<span>' + dnEsc(c) + '</span>'; }).join('') + '</div>' : '') + '</div>';
+}
+/* ===== Покупка доната за Telegram Stars ===== */
+/* Адрес серверной функции (см. server/stars.ts). Пока пусто — вкладка покажет «скоро». */
+var STARS_API = 'https://bsrdpworzwbuzhrqarse.supabase.co/functions/v1/stars';
+/* Только для показа! Настоящие цены и количество доната хранятся на сервере (PACKS в stars.ts) — держи их одинаковыми. */
+var STAR_PACKS = [
+  {id: 's50',   stars: 50,   donate: 10,  ico: '✨', tag: ''},
+  {id: 's100',  stars: 100,  donate: 22,  ico: '💫', tag: '+10%'},
+  {id: 's250',  stars: 250,  donate: 60,  ico: '🌟', tag: '+20%'},
+  {id: 's500',  stars: 500,  donate: 130, ico: '💎', tag: '+30%'},
+  {id: 's1000', stars: 1000, donate: 280, ico: '👑', tag: 'Выгоднее всего'}
+];
+var starBusy = false;
+function starsPost(body) {
+  var t = tgW(); body.initData = t ? t.initData : '';
+  return fetch(STARS_API, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
+    .then(function (r) { return r.json(); });
+}
+function dnBuyPanel() {
+  var list = STAR_PACKS.map(function (p) {
+    return '<div class="dn-src dn-pack"><span class="dn-ic">' + p.ico + '</span><div class="dn-tx"><b>' + dnCoin() + p.donate.toLocaleString('ru-RU') + ' доната' +
+      (p.tag ? ' <span class="dn-tag">' + p.tag + '</span>' : '') + '</b><small>Мгновенно после оплаты</small></div>' +
+      '<button type="button" class="btn sm dn-go" data-starbuy="' + p.id + '"' + (starBusy ? ' disabled' : '') + '>⭐ ' + p.stars.toLocaleString('ru-RU') + '</button></div>';
+  }).join('');
+  return '<p class="adsub">Оплата через Telegram Stars. Донат начисляется автоматически сразу после оплаты.</p>' +
+    '<div class="card dn-card"><h3>Пополнить донат</h3><div class="dn-row"><span>Твой донат</span><b>' + dnCoin() + Number(S.donate || 0).toLocaleString('ru-RU') + '</b></div>' +
+    '<div class="dn-list">' + list + '</div></div>';
+}
+function starsBuy(packId) {
+  var t = tgW();
+  if (!STARS_API) { toast('Покупки скоро появятся'); return; }
+  if (!t || !t.initData || typeof t.openInvoice !== 'function') { toast('Покупка работает только внутри Telegram'); return; }
+  if (starBusy) return;
+  starBusy = true; renderDonate(true);
+  starsPost({action: 'invoice', pack: packId}).then(function (res) {
+    if (!res || !res.link) throw new Error('no link');
+    t.openInvoice(res.link, function (status) {
+      if (status === 'paid') starsClaim(true, 0);
+      else { starBusy = false; renderDonate(true); if (status === 'failed') toast('Платёж не прошёл'); }
+    });
+  }).catch(function () { starBusy = false; renderDonate(true); toast('Не удалось создать счёт. Попробуйте позже'); });
+}
+/* Забирает с сервера оплаченные, но ещё не начисленные покупки (каждая отдаётся один раз) */
+function starsClaim(afterPay, tries) {
+  starsPost({action: 'claim'}).then(function (res) {
+    var n = (res && +res.donate) || 0;
+    if (n > 0) { addDonate(n); starBusy = false; refresh(); renderDonate(true); toast('Спасибо за покупку! +' + n.toLocaleString('ru-RU') + ' доната'); return; }
+    if (afterPay && tries < 5) { setTimeout(function () { starsClaim(true, tries + 1); }, 1500); return; }  /* вебхук Telegram может прийти с задержкой */
+    starBusy = false; renderDonate(true);
+    if (afterPay) toast('Платёж получен — донат придёт в течение минуты');
+  }).catch(function () { starBusy = false; renderDonate(true); });
+}
+function renderDonate(force) {
+  if (view !== 'donate') return;
+  var ae = document.activeElement, foc = (ae && (ae.id === 'pcIn' || ae.id === 'exIn')) ? ae.id : null;
+  if (foc && !force) { dnUpd(); return; }   /* не трогаем поле, пока в нём печатают */
+  var pv = $('#pcIn') ? $('#pcIn').value : '', ev = $('#exIn') ? $('#exIn').value : '';
+  $('#v-donate').innerHTML = '<h2>Донат</h2><div class="btabs dn-tabs">' +
+    '<button type="button" class="btab' + (dnTab === 'main' ? ' on' : '') + '" data-dntab="main"><span class="ti">🪙</span><span class="tt"><b>Донат</b><small>Как получить и обменять</small></span></button>' +
+    '<button type="button" class="btab' + (dnTab === 'buy' ? ' on' : '') + '" data-dntab="buy"><span class="ti">⭐</span><span class="tt"><b>Купить</b><small>За Telegram Stars</small></span></button>' +
+    '<button type="button" class="btab' + (dnTab === 'promo' ? ' on' : '') + '" data-dntab="promo"><span class="ti">🎟</span><span class="tt"><b>Промокод</b><small>Введи код — получи награду</small></span></button>' +
+    '</div><div class="bpanel' + (dnAnim ? ' in' : '') + '">' + (dnTab === 'promo' ? dnPromoPanel() : dnTab === 'buy' ? dnBuyPanel() : dnMainPanel()) + '</div>';
+  dnAnim = false;
+  if ($('#pcIn')) $('#pcIn').value = pv;
+  if ($('#exIn')) $('#exIn').value = ev;
+  dnUpd();
+  if (foc && $('#' + foc)) { try { $('#' + foc).focus(); } catch (e) {} }
+}
+function dnUpd() {
+  var h = $('#exHave'), inp = $('#exIn'), pv = $('#exPrev'), go = $('#exGo');
+  if (h) h.textContent = Number(S.donate || 0).toLocaleString('ru-RU');
+  if (!inp || !pv) return;
+  var n = Math.floor(+inp.value || 0), bad = n > (S.donate || 0);
+  pv.className = 'dn-prev' + (bad ? ' bad' : '');
+  pv.textContent = bad ? 'Не хватает доната: у тебя ' + (S.donate || 0) : 'Получишь: ' + money(Math.max(0, n) * DON_RATE);
+  if (go) go.disabled = !(n >= 1 && !bad);
+}
+function dnExchange(btn) {
+  var inp = $('#exIn'); if (!inp || !btn || btn.disabled) return;
+  var n = Math.floor(+inp.value || 0);
+  if (n < 1) { toast('Введи, сколько доната обменять'); return; }
+  if (n > S.donate) { toast('Не хватает доната: у тебя ' + S.donate); return; }
+  var gain = n * DON_RATE;
+  if (!confirm('Обменять ' + n.toLocaleString('ru-RU') + ' доната на ' + money(gain) + '?')) return;
+  var pt = center(btn);
+  S.donate -= n; S.balance = Math.min(1e13, S.balance + gain);
+  save(); inp.value = ''; refresh();
+  sparks(pt.x, pt.y, 24, '#ffd24a'); burst(pt.x, pt.y, 50, GOLD, 1.1, true);
+  toast('Обмен выполнен: +' + money(gain) + ' на баланс');
+}
+function dnSay(k, x) { dnNote = {k: k, x: x}; var m = $('#pcMsg'); if (m) { m.className = 'dn-msg ' + k; m.textContent = x; } }
+function promoRedeem() {
+  var inp = $('#pcIn'); if (!inp) return;
+  var code = String(inp.value || '').toUpperCase().replace(/\s+/g, '');
+  if (!code) { dnSay('err', 'Введи промокод'); return; }
+  var p = Object.prototype.hasOwnProperty.call(PROMOS, code) ? PROMOS[code] : null;
+  if (!p) { dnSay('err', 'Такого промокода нет'); return; }
+  if (!S.promo) S.promo = {};
+  if (S.promo[code]) { dnSay('err', 'Этот промокод ты уже активировал'); return; }
+  var parts = [], toRew = false, pt = center($('#pcGo') || inp);
+  S.promo[code] = Date.now();
+  if (p.d) { pushReward({type: 'donate', donate: p.d, from: 'Промокод ' + code}); parts.push('+' + p.d.toLocaleString('ru-RU') + ' доната'); toRew = true; }
+  if (p.c && caseById(p.c)) { pushReward({type: 'case', caseId: p.c, n: 1, from: 'Промокод ' + code}); parts.push('«' + caseById(p.c).name + '»'); toRew = true; }
+  if (p.m) { S.balance = Math.min(1e13, S.balance + p.m); parts.push('+' + money(p.m)); }
+  dnSay('ok', 'Промокод активирован: ' + parts.join(', ') + (toRew ? '. Забери награду во вкладке «Награды»' : ''));
+  save(); inp.value = ''; refresh(); renderDonate(true);
+  sparks(pt.x, pt.y, 24, '#ffd24a'); burst(pt.x, pt.y, 50, GOLD, 1.1, true);
+  toast('Промокод активирован!');
+}
+document.addEventListener('click', function (e) {
+  var tb = e.target.closest('[data-dntab]');
+  if (tb) { if (dnTab !== tb.dataset.dntab) { dnTab = tb.dataset.dntab; dnAnim = true; dnNote = null; renderDonate(true); } return; }
+  var sb = e.target.closest('[data-starbuy]');
+  if (sb) { starsBuy(sb.dataset.starbuy); return; }
+  var g = e.target.closest('[data-dngo]');
+  if (g) { var a = g.dataset.dngo.split(':'); if (a[1]) bTab = a[1]; go(a[0]); return; }
+  var q = e.target.closest('[data-exq]');
+  if (q) { var inp = $('#exIn'); if (!inp) return; var v = q.dataset.exq === 'all' ? S.donate : Math.min(+q.dataset.exq, S.donate); inp.value = v > 0 ? v : ''; dnUpd(); return; }
+  var ex = e.target.closest('#exGo'); if (ex) { dnExchange(ex); return; }
+  if (e.target.closest('#pcGo')) promoRedeem();
+});
+document.addEventListener('input', function (e) { if (e.target.id === 'exIn') dnUpd(); });
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+  if (e.target.id === 'pcIn') promoRedeem(); else if (e.target.id === 'exIn') dnExchange($('#exGo'));
+});
+
 resolvePend();
+if (STARS_API && refOn()) starsClaim(false, 0);
 renderCountries();
 PROGRESS_INIT();
 refresh();
