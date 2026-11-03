@@ -931,3 +931,88 @@ input,select,textarea{font-size:16px} /* чтобы iOS не зумил стра
 .rl-box.wait .rl-wheel{filter:grayscale(.7) brightness(.7);box-shadow:none}
 .rl-prizes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px;max-width:520px}
 .rl-prizes span{font-size:13px;color:var(--mut);padding:4px 10px;border:1px solid var(--line);border-radius:12px;background:#0d0f13}
+
+/* ===== Мини игра «Угадай регион» ===== */
+.rgp{display:flex;justify-content:center;padding:4px 0}
+.rgp .plate{font-size:clamp(28px,7vw,56px)}
+.rgopts{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rgo{padding:18px 14px;min-height:76px;justify-content:center;text-align:center;font:700 clamp(15px,3.4vw,19px) Manrope,sans-serif;animation:wdL .5s cubic-bezier(.2,1.1,.3,1) backwards}
+.rgcodes{min-height:20px;font:600 14px Manrope,sans-serif;color:var(--mut);text-align:center}
+.rgcodes b{color:var(--gold);font-family:Oswald,sans-serif;font-size:17px}
+@media (max-width:620px){.rgopts{grid-template-columns:1fr;gap:8px}.rgo{min-height:60px;padding:14px 12px}}
+
+/* ===== Spin Pass ===== */
+.ftag{position:absolute;z-index:4;right:.5em;top:0;font:700 .3em/1 Oswald,sans-serif;letter-spacing:.04em;color:#3a2a00;background:linear-gradient(#fff7c2,#ffd24a);padding:.05em .25em .06em;border-radius:0 0 .3em .3em;pointer-events:none}
+.fk-metal .ftag{box-shadow:0 .05em .2em rgba(0,0,0,.4)}
+.fcard .fpp{color:#ffd24a;font-size:14px}
+.sp-head{max-width:760px;display:flex;flex-direction:column;gap:10px;padding:18px;margin-bottom:16px;border-radius:18px;border:1px solid #262a32;background:linear-gradient(160deg,#1b1a22,#0f1115)}
+.sp-tier{font:700 22px Oswald,sans-serif;letter-spacing:.12em;background:linear-gradient(90deg,#e3e7ef,#8b93a6,#e3e7ef);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sp-tier small{font:600 13px Manrope,sans-serif;letter-spacing:0;color:var(--mut);-webkit-text-fill-color:var(--mut);margin-left:8px}
+.sp-lv{display:flex;align-items:baseline;gap:8px;color:var(--mut)}
+.sp-lv b{font:700 44px Oswald,sans-serif;color:var(--gold);line-height:1}
+.sp-xp,.sp-next{font-size:13px;color:var(--mut)}
+.sp-xp b,.sp-next b{color:var(--txt)}
+.sp-head .btn{align-self:flex-start}
+.spg{max-width:960px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.sph{grid-column:1/-1;margin:14px 0 0;font:700 16px Oswald,sans-serif;color:var(--mut);letter-spacing:.06em}
+.spl{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:128px;padding:12px 8px;border-radius:14px;border:1px solid #262a32;background:linear-gradient(160deg,#171a20,#0f1115);color:var(--txt);font-family:inherit;text-align:center;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.spl:hover{transform:translateY(-3px)}
+.spn{position:absolute;left:8px;top:6px;font:700 12px Oswald,sans-serif;color:var(--mut)}
+.spi{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:10px}
+.sic{font-size:26px;line-height:1}
+.sit{font:700 13px Manrope,sans-serif}
+.sps{font:700 12px Manrope,sans-serif;color:var(--mut)}
+.spl.rdy{border-color:#4ade80;box-shadow:0 0 22px -8px #4ade80;animation:tbPulse 1.6s ease-in-out infinite}
+.spl.rdy .sps{color:#4ade80}
+.spl.got{opacity:.55}
+.spl.got .sps{color:#4ade80}
+.spl.lock{opacity:.8}
+.spl.main{grid-column:span 2;min-height:150px;border:2px solid var(--gold);background:linear-gradient(160deg,#2a2110,#14110a 70%);box-shadow:0 0 28px -6px var(--gold),inset 0 0 24px -12px var(--gold)}
+.spl.main.got,.spl.main.lock{opacity:1}
+.spl.main.got{filter:saturate(.7)}
+.spl.main::after{content:"";position:absolute;inset:0;border-radius:12px;pointer-events:none;background:linear-gradient(105deg,transparent 40%,rgba(255,236,160,.22) 50%,transparent 60%);background-size:260% 100%;animation:frShine 3.2s ease-in-out infinite}
+.spl.main.rdy{animation:none;box-shadow:0 0 40px -2px var(--gold),inset 0 0 28px -8px var(--gold)}
+.spm{font:700 10px Oswald,sans-serif;letter-spacing:.14em;color:#ffd24a;font-style:normal;margin-top:14px}
+.spt{font:700 17px Oswald,sans-serif;color:#fff3b0}
+.spl.main .spi{margin-top:2px;flex-direction:row;gap:8px}
+.spl.main .sic{font-size:30px}
+.spl.main .spn{color:#ffd24a}
+.sp-streak{gap:4px}
+.sp-streak small{color:var(--mut);font-size:12.5px;line-height:1.4}
+.spb{border-style:dashed!important}
+.spg.in .spl{animation:bnIn .4s cubic-bezier(.2,.8,.2,1) backwards}
+@media(max-width:520px){.spg{grid-template-columns:repeat(2,minmax(0,1fr))}.sp-lv b{font-size:38px}}
+
+/* ===== Spin Pass Gold ===== */
+@property --ga{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes gSpin{to{--ga:360deg}}
+@keyframes gShimmer{0%{background-position:0 0}100%{background-position:-200% 0}}
+@keyframes gFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.08)}}
+.btab.gtab .ti{color:#ffd24a}
+.btab.gtab.on{border-color:#ffd24a;background:linear-gradient(135deg,#3a2a06,#120d03 70%);box-shadow:0 0 30px -6px #ffb300}
+.sp-head.gold{position:relative;overflow:hidden;border:1px solid #8a6a1a;background:radial-gradient(ellipse at 85% 0%,rgba(255,200,60,.28),transparent 55%),linear-gradient(160deg,#2a1f08,#0c0904 75%);box-shadow:0 0 40px -14px #ffb300,inset 0 1px 0 rgba(255,236,160,.25)}
+.sp-head.gold::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 40%,rgba(255,236,160,.12) 50%,transparent 60%);background-size:260% 100%;animation:frShine 4.5s ease-in-out infinite}
+.sp-tier.g{font-size:26px;background:linear-gradient(90deg,#fff3b0,#ffb300,#fff3b0,#b8860b,#fff3b0);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gShimmer 3s linear infinite}
+.sp-head.gold .pbar i{background:linear-gradient(90deg,#b8860b,#ffd24a,#fff3b0)!important}
+.sp-perks{margin:0;padding-left:18px;color:#d9c48a;font-size:13px;line-height:1.5}
+.sp-own{font:700 14px Manrope,sans-serif;color:#ffd24a}
+.btn.gbuy{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;background:linear-gradient(180deg,#fff3b0,#ffc83a 45%,#c98a00);box-shadow:0 0 28px -4px #ffb300}
+.btn.gbuy .coin{width:22px;height:22px;object-fit:contain}
+.spg.gold .sph{color:#d9b24a}
+.spg.gold .spl{border-color:#4a3a14;background:linear-gradient(160deg,#1f1810,#0e0b07)}
+.spg.gold .spl .spn{color:#b8923a}
+.spg.gold .spl.rdy{border-color:#ffd24a;box-shadow:0 0 24px -6px #ffb300}
+.spg.gold .spl.rdy .sps{color:#ffd24a}
+.spg.gold .spl.main{border:3px solid transparent;min-height:170px;background:linear-gradient(#241a06,#0c0904) padding-box,conic-gradient(from var(--ga),#fff3b0,#ffb300,#7a4f00,#ffd24a,#fff,#ffb300,#7a4f00,#fff3b0) border-box;animation:gSpin 3.2s linear infinite;box-shadow:0 0 36px -4px #ffb300,inset 0 0 30px -10px #ffb300}
+.spg.gold .spl.main.rdy{box-shadow:0 0 52px 0 #ffb300,inset 0 0 34px -6px #ffb300}
+.spg.gold .spl.main .spi{flex-direction:column;margin-top:0}
+.spg.gold .spl.main .sic.sq{font-size:0;display:block;width:64px;height:64px;line-height:64px;text-align:center;border-radius:50%;background:radial-gradient(circle,#4a3508,#1a1204);border:2px solid #ffd24a;box-shadow:0 0 22px #ffb300;animation:gFloat 2.4s ease-in-out infinite}
+.spg.gold .spl.main .sic.sq::before{content:"?";font:700 40px/60px Oswald,sans-serif;color:#ffd24a;text-shadow:0 0 14px #ffb300}
+.spg.gold .spl.main .sit{color:#fff3b0}
+.spg.gold .spl.main .spm{color:#fff3b0}
+@media (prefers-reduced-motion:reduce){.spg.gold .spl.main,.sp-tier.g,.sp-head.gold::after,.sic.sq{animation:none!important}}
+.spg.gold .sic.sq+.sit{display:none}
+.sp-end{align-self:flex-start;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid #2c303a;font:700 13px Manrope,sans-serif;color:var(--txt)}
+.sp-end.warn{color:#ff9a6a;border-color:#8a3a1a;background:rgba(255,120,60,.1)}
+.sp-head.gold .sp-end{border-color:#6b5316;color:#ffd24a}
+
