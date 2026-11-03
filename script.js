@@ -75,7 +75,7 @@ var BODY = {
 };
 
 /* ===== Состояние и сохранение ===== */
-function fresh() { return {balance:250000, inv:[], cars:[], country:'RU', ver:3, donate:0, opened:0, opn:{}, free:{}, claimed:{}, dailyAt:0, dailyN:0, adAt:0, adN:0, adCl:{}, rewards:[], fs:0, hr:{st:'ready', left:0}, rl:{st:'ready', left:0}, pend:null, col:{}, mg:{best:0, games:0}, xp:0, dry:0, last:[], mis:null, ach:{}, stat:{spins:0,spent:0,kept:0,sold:0,cases:0,best:0,bestP:null,byRar:[0,0,0,0,0,0,0],upg:0,upgWin:0,frames:0,misDone:0}}; }
+function fresh() { return {balance:250000, inv:[], cars:[], country:'RU', ver:3, donate:0, opened:0, opn:{}, free:{}, claimed:{}, dailyAt:0, dailyN:0, adAt:0, adN:0, adCl:{}, rewards:[], fs:0, hr:{st:'ready', left:0}, rl:{st:'ready', left:0}, pend:null, col:{}, mg:{best:0, games:0}, xp:0, dry:0, last:[], mis:null, pass:null, ach:{}, stat:{spins:0,spent:0,kept:0,sold:0,cases:0,best:0,bestP:null,byRar:[0,0,0,0,0,0,0],upg:0,upgWin:0,frames:0,misDone:0}}; }
 var ACCEPT_UNSIGNED = false;  /* true на один релиз — принять старые сохранения без подписи */
 var SIG_SALT = 'gl7f3a91c2-nomera-9d41';
 function sigHash(str) {
@@ -96,7 +96,7 @@ try {
       S.cars = Array.isArray(parsed.cars) ? parsed.cars : [];
       S.ver = parsed.ver || 2;
       S.donate = Math.max(0, +parsed.donate || 0);
-      S.opened = Math.max(0, +parsed.opened || 0); S.opn = parsed.opn || {silver: S.opened}; S.free = parsed.free || {}; S.claimed = parsed.claimed || {}; S.dailyAt = +parsed.dailyAt || 0; S.dailyN = +parsed.dailyN || 0; S.adAt = +parsed.adAt || 0; S.adN = +parsed.adN || 0; S.adCl = (parsed.adCl && typeof parsed.adCl === 'object') ? parsed.adCl : {}; S.xp = +parsed.xp || 0; S.dry = +parsed.dry || 0; S.last = Array.isArray(parsed.last) ? parsed.last : []; S.mis = parsed.mis || null; S.ach = parsed.ach || {}; S.stat = Object.assign(fresh().stat, parsed.stat || {}); if (!Array.isArray(S.stat.byRar) || S.stat.byRar.length < 7) S.stat.byRar = [0,0,0,0,0,0,0];
+      S.opened = Math.max(0, +parsed.opened || 0); S.opn = parsed.opn || {silver: S.opened}; S.free = parsed.free || {}; S.claimed = parsed.claimed || {}; S.dailyAt = +parsed.dailyAt || 0; S.dailyN = +parsed.dailyN || 0; S.adAt = +parsed.adAt || 0; S.adN = +parsed.adN || 0; S.adCl = (parsed.adCl && typeof parsed.adCl === 'object') ? parsed.adCl : {}; S.xp = +parsed.xp || 0; S.dry = +parsed.dry || 0; S.last = Array.isArray(parsed.last) ? parsed.last : []; S.mis = parsed.mis || null; S.pass = (parsed.pass && typeof parsed.pass === 'object') ? parsed.pass : null; S.ach = parsed.ach || {}; S.stat = Object.assign(fresh().stat, parsed.stat || {}); if (!Array.isArray(S.stat.byRar) || S.stat.byRar.length < 7) S.stat.byRar = [0,0,0,0,0,0,0];
       S.mg = (parsed.mg && typeof parsed.mg === 'object') ? parsed.mg : {best:0, games:0}; S.col = (parsed.col && typeof parsed.col === 'object') ? parsed.col : {};
       S.rewards = (Array.isArray(parsed.rewards) ? parsed.rewards : []).filter(function (r) { return r && r.id && (r.type === 'donate' ? r.donate > 0 : r.type === 'spins' ? r.n > 0 : r.type === 'case' && r.caseId); });
       S.fs = Math.max(0, Math.floor(+parsed.fs || 0));
@@ -563,6 +563,7 @@ var FRAMES = [
   fs2('d_crown','Корона Абсолюта',5000,'royal','#ffd24a','#00e5ff','#ffd24a,#fff7c2,#00e5ff,#b9f6ff,#ffd24a,#fff7c2,#00e5ff,#b9f6ff,#ffd24a',6)
 ];
 var FR_GROUPS = [
+  ['pass','Spin Pass','Особые рамки — их нельзя купить, они выдаются только за уровни Spin Pass'],
   ['color','Цветные','Яркие плотные рамки — самый доступный способ выделить номер'],
   ['duo','Двухцветные','Градиент из двух цветов по контуру номера'],
   ['metal','Металлические','Благородный металл с бликом, который пробегает по рамке'],
@@ -572,13 +573,17 @@ var FR_GROUPS = [
   ['dia','Алмазные','Сияют, искрятся и мощно светятся постоянно'],
   ['royal','Королевские','Самые редкие рамки: огромное сияние и россыпь искр']
 ];
-var FR_PW = {color:.14, duo:.14, metal:.15, neon:.11, elem:.16, rain:.17, dia:.19, royal:.23};
-var FR_GL = {color:1.3, duo:1.4, metal:1.5, neon:1.8, elem:2.1, rain:2.3, dia:2.8, royal:3.6};
+var FR_PW = {pass:.17, color:.14, duo:.14, metal:.15, neon:.11, elem:.16, rain:.17, dia:.19, royal:.23};
+var FR_GL = {pass:2.6, color:1.3, duo:1.4, metal:1.5, neon:1.8, elem:2.1, rain:2.3, dia:2.8, royal:3.6};
+FRAMES.push(
+  {id:'p_gold1', name:'Золотая №1', price:0, g:'pass', k:'fk-metal', a:'#ffd24a', b:'#b8860b', c:'#fff3b0', pass:true, tag:'#1', fx:4},
+  {id:'p_silver100', name:'Silver Pass', price:0, g:'pass', k:'fk-metal', a:'#e3e7ef', b:'#7d8597', c:'#ffffff', pass:true, tag:'#100', fx:2}
+);
 var FRAME_MAP = {}; FRAMES.forEach(function (f) { FRAME_MAP[f.id] = f; });
 function frameWrap(f, inner, sm) {
   var st = '--pw:' + FR_PW[f.g] + 'em;--gl:' + FR_GL[f.g] + ';--a:' + f.a + ';--b:' + (f.b || f.a) + ';--c:' + (f.c || '#fff') + ';--g:color-mix(in srgb,' + f.a + ' 75%,transparent);' + (f.cg ? '--cg:' + f.cg + ';' : '');
   var sp = ''; for (var i = 0; i < (f.fx || 0); i++) sp += '<i class="fs">' + (i % 2 ? '✧' : '✦') + '</i>';
-  return '<span class="pf ' + f.k + (sm ? ' sm' : '') + '" style="' + st + '">' + sp + inner + '</span>';
+  return '<span class="pf ' + f.k + (sm ? ' sm' : '') + '" style="' + st + '">' + sp + inner + (f.tag ? '<b class="ftag">' + f.tag + '</b>' : '') + '</span>';
 }
 function plateHTML(p, sm, cls) {
   var c = p.c || 'RU';
@@ -942,7 +947,7 @@ function closeSheet() { $('#sheet').classList.remove('open'); }
 /* ===== Навигация, клики, обновление ===== */
 var view = 'drop';
 function refresh() {
-  showBalance(); showDonate(); updLvChip(); updMisBadge(); if (view === 'drop') renderDropExtras(); if (view === 'missions') renderMissions(); if (view === 'profile') renderProfile();
+  showBalance(); showDonate(); updLvChip(); updMisBadge(); updPassBadge(); if (view === 'pass') renderPass(); if (view === 'drop') renderDropExtras(); if (view === 'missions') renderMissions(); if (view === 'profile') renderProfile();
   $('#cInv').textContent = S.inv.length; $('#cGar').textContent = S.cars.length;
   if (view === 'inv') renderInv();
   if (view === 'shop') renderShop();
@@ -955,7 +960,7 @@ function toggleMenu(open) {
   $('#side').classList.toggle('open', open); $('#overlay').classList.toggle('on', open);
 }
 function go(v) {
-  view = v; if (v === 'bonus') bAnim = true; if (v === 'collection') colAnim = true; if (v === 'frames') frAnim = true;  if (v === 'rewards') rAnim = true;
+  view = v; if (v === 'bonus') bAnim = true; if (v === 'collection') colAnim = true; if (v === 'frames') frAnim = true; if (v === 'pass') passAnim = true;  if (v === 'rewards') rAnim = true;
   document.querySelectorAll('section').forEach(function (s) { s.classList.toggle('active', s.id === 'v-' + v); });
   document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('active', b.dataset.view === v); });
   toggleMenu(false); refresh();
@@ -1149,7 +1154,7 @@ function renderFrames() {
   FR_GROUPS.forEach(function (g) {
     var list = FRAMES.filter(function (f) { return f.g === g[0]; });
     h += '<div class="fgrp"><h3>' + g[1] + '</h3><p>' + g[2] + '</p></div><div class="fgrid">' + list.map(function (f, i) {
-      return '<button type="button" class="fcard' + (fSel === f.id ? ' sel' : '') + '" data-fr="' + f.id + '" style="animation-delay:' + (i * 50) + 'ms"><div class="fpv">' + plateHTML(Object.assign({}, DEMO, {frame: f.id}), 1) + '</div><div class="fn">' + f.name + '</div><div class="fp"><img src="' + coin + '" alt="">' + f.price.toLocaleString('ru-RU') + '</div></button>';
+      return '<button type="button" class="fcard' + (fSel === f.id ? ' sel' : '') + '" data-fr="' + f.id + '" style="animation-delay:' + (i * 50) + 'ms"><div class="fpv">' + plateHTML(Object.assign({}, DEMO, {frame: f.id}), 1) + '</div><div class="fn">' + f.name + '</div>' + (f.pass ? '<div class="fp fpp">🎟 В наличии: ' + passFrames(f.id) + '</div>' : '<div class="fp"><img src="' + coin + '" alt="">' + f.price.toLocaleString('ru-RU') + '</div>') + '</button>';
     }).join('') + '</div>';
   });
   h += '</div><div id="fbar" hidden></div>';
@@ -1158,6 +1163,7 @@ function renderFrames() {
 function updFrBar() {
   var b = $('#fbar'); if (!b) return;
   var f = fSel && FRAME_MAP[fSel]; b.hidden = !f; if (!f) return;
+  if (f.pass) { var pn = passFrames(f.id); b.innerHTML = '<span>Выбрано: <b>' + f.name + '</b> · ' + (pn ? 'в наличии: ' + pn : '<span style="color:#ff6a6a">получи в Spin Pass</span>') + '</span><button type="button" class="btn sm" id="frBuy"' + (pn ? '' : ' disabled') + '>Надеть</button>'; return; }
   b.innerHTML = '<span>Выбрано: <b>' + f.name + '</b> · ' + f.price.toLocaleString('ru-RU') + ' доната' + (S.donate < f.price ? ' <span style="color:#ff6a6a">(не хватает ' + (f.price - S.donate).toLocaleString('ru-RU') + ')</span>' : '') + '</span><button type="button" class="btn sm" id="frBuy">Купить</button>';
 }
 document.addEventListener('click', function (e) {
@@ -1166,7 +1172,8 @@ document.addEventListener('click', function (e) {
   if (!e.target.closest('#frBuy')) return;
   var f = FRAME_MAP[fSel]; if (!f) return;
   if (!S.inv.length) { toast('В инвентаре нет номеров — сначала выбей номер'); return; }
-  if (S.donate < f.price) { toast('Не хватает доната: нужно ' + f.price.toLocaleString('ru-RU')); return; }
+  if (f.pass && !passFrames(f.id)) { toast('Эта рамка выдаётся в Spin Pass'); return; }
+  if (!f.pass && S.donate < f.price) { toast('Не хватает доната: нужно ' + f.price.toLocaleString('ru-RU')); return; }
   openFrPick(f);
 });
 function openFrPick(f) {
@@ -1176,7 +1183,7 @@ function openFrPick(f) {
   }).join('');
   $('#frmPrev').innerHTML = plateHTML(Object.assign({}, DEMO, {frame: f.id}), 0);
   $('#frmNote').textContent = 'Рамка «' + f.name + '». Выбери номер из инвентаря';
-  var ok = $('#frmOk'); ok.disabled = true; ok.textContent = 'Купить за ' + f.price.toLocaleString('ru-RU');
+  var ok = $('#frmOk'); ok.disabled = true; ok.textContent = f.pass ? 'Надеть' : 'Купить за ' + f.price.toLocaleString('ru-RU');
   $('#frm').hidden = false;
 }
 document.addEventListener('click', function (e) {
@@ -1192,14 +1199,14 @@ $('#frmCancel').addEventListener('click', function () { $('#frm').hidden = true;
 $('#frmOk').addEventListener('click', async function () {
   var f = FRAME_MAP[fSel], p = S.inv[fPick];
   if (!f || !p || this.disabled) return;
-  if (S.donate < f.price) { toast('Не хватает доната'); return; }
+  if (f.pass ? !passFrames(f.id) : S.donate < f.price) { toast(f.pass ? 'Рамки нет в наличии' : 'Не хватает доната'); return; }
   $('#frm').hidden = true; fPick = -1;
   var o = $('#fbuy'), st = $('#fbStage'), tt = $('#fbT'), ok = $('#fbOk');
   o.hidden = false; ok.hidden = true; tt.className = ''; tt.textContent = 'Устанавливаем рамку…';
   st.className = 'fbs charge'; st.innerHTML = plateHTML(Object.assign({}, p, {frame: null}), 0);
   var c = center(st);
   for (var i = 0; i < 3; i++) { sparks(c.x, c.y, 8, f.a); await sleep(300); }
-  S.donate = Math.max(0, S.donate - f.price); p.frame = f.id; S.stat.frames++; track('frame'); save(); showDonate();
+  if (f.pass) S.pass.fr[f.id] = Math.max(0, passFrames(f.id) - 1); else S.donate = Math.max(0, S.donate - f.price); p.frame = f.id; S.stat.frames++; track('frame'); save(); showDonate();
   var cols = [f.a, f.b || f.a, f.c || '#fff', '#ffffff'], dia = f.g === 'dia';
   flash(f.a, dia ? .55 : .4);
   st.className = 'fbs reveal'; st.innerHTML = plateHTML(p, 0); c = center(st);
@@ -1245,7 +1252,7 @@ function wdBank() { return Math.floor(wdBet * wdMult(wdStreak)); }
 function renderMini() {
   if (view !== 'minigames') return;
   if (mgView !== 'menu') return;   /* идущую игру не перерисовываем */
-  $('#v-minigames').innerHTML = '<h2>Мини игры</h2><div class="mgrid"><button type="button" class="mgc" data-mg="wd"><span class="mi">⚖️</span><h3>Что дороже?</h3><p>Два номера — угадай, какой дороже. Ставь деньги с баланса: с каждой победой выигрыш растёт, можно забрать или рискнуть дальше.</p><span class="mb">🏆 Рекорд серии: ' + (S.mg.best || 0) + '</span></button></div>';
+  $('#v-minigames').innerHTML = '<h2>Мини игры</h2><div class="mgrid"><button type="button" class="mgc" data-mg="wd"><span class="mi">⚖️</span><h3>Что дороже?</h3><p>Два номера — угадай, какой дороже. Ставь деньги с баланса: с каждой победой выигрыш растёт, можно забрать или рискнуть дальше.</p><span class="mb">🏆 Рекорд серии: ' + (S.mg.best || 0) + '</span></button>' + RG_CARD() + '</div>';
 }
 function wdLadder(cur, from) {
   var h = '<div class="wdlad">'; for (var i = from; i < from + 7; i++) h += '<span class="' + (i < cur ? 'done' : i === cur ? 'now' : '') + '"><small>' + i + '</small>' + wdFmtM(wdMult(i)) + '</span>'; return h + '</div>';
@@ -1360,6 +1367,160 @@ async function wdGuess(i) {
     $('#wdEnd').innerHTML = '<div class="wdend"><div style="font:600 13px Manrope,sans-serif;color:var(--mut);letter-spacing:.14em;text-transform:uppercase">Твоя серия</div><div class="big">' + wdStreak + '</div>' +
       (wdBet > 0 ? '<div style="color:#ff6a7a;font:700 17px Manrope,sans-serif">Потеряно: ' + money(wdBet) + '</div>' : '') +
       (rec ? '<div class="rec">🏆 Новый рекорд!</div>' : '<div style="color:var(--mut);font-size:14px">Рекорд: ' + (S.mg.best || 0) + '</div>') + '<button type="button" class="btn" id="wdAgain">🔁 Играть снова</button></div>';
+  }
+}
+
+/* ===== Мини игра «Угадай регион» (та же механика, что у «Что дороже?») ===== */
+var RG = [
+  ['01', 'Республика Адыгея', 3], ['02,102,702', 'Республика Башкортостан', 1], ['03,103', 'Республика Бурятия', 2], ['04', 'Республика Алтай', 3],
+  ['05', 'Республика Дагестан', 1], ['06', 'Республика Ингушетия', 3], ['07', 'Кабардино-Балкарская Республика', 3], ['08', 'Республика Калмыкия', 3],
+  ['09', 'Карачаево-Черкесская Республика', 3], ['10', 'Республика Карелия', 2], ['11', 'Республика Коми', 2], ['12', 'Республика Марий Эл', 3],
+  ['13,113', 'Республика Мордовия', 3], ['14', 'Республика Саха (Якутия)', 2], ['15', 'Республика Северная Осетия — Алания', 2], ['16,116,716', 'Республика Татарстан', 1],
+  ['17', 'Республика Тыва', 3], ['18,118', 'Удмуртская Республика', 2], ['19', 'Республика Хакасия', 3], ['21,121', 'Чувашская Республика', 2],
+  ['22', 'Алтайский край', 2], ['23,93,123', 'Краснодарский край', 1], ['24,84,88,124', 'Красноярский край', 1], ['25,125', 'Приморский край', 1],
+  ['26,126', 'Ставропольский край', 2], ['27', 'Хабаровский край', 2], ['28', 'Амурская область', 3], ['29', 'Архангельская область', 2],
+  ['30', 'Астраханская область', 2], ['31', 'Белгородская область', 2], ['32', 'Брянская область', 2], ['33', 'Владимирская область', 2],
+  ['34,134', 'Волгоградская область', 1], ['35', 'Вологодская область', 2], ['36,136', 'Воронежская область', 1], ['37', 'Ивановская область', 3],
+  ['38,85,138', 'Иркутская область', 2], ['39,91', 'Калининградская область', 2], ['40', 'Калужская область', 2], ['41', 'Камчатский край', 2],
+  ['42,142', 'Кемеровская область', 2], ['43', 'Кировская область', 2], ['44', 'Костромская область', 3], ['45', 'Курганская область', 3],
+  ['46', 'Курская область', 2], ['47', 'Ленинградская область', 1], ['48', 'Липецкая область', 2], ['49', 'Магаданская область', 3],
+  ['50,90,150,190,750', 'Московская область', 1], ['51', 'Мурманская область', 2], ['52,152', 'Нижегородская область', 1], ['53', 'Новгородская область', 2],
+  ['54,154', 'Новосибирская область', 1], ['55', 'Омская область', 2], ['56', 'Оренбургская область', 2], ['57', 'Орловская область', 3],
+  ['58', 'Пензенская область', 2], ['59,81,159', 'Пермский край', 1], ['60', 'Псковская область', 3], ['61,161,761', 'Ростовская область', 1],
+  ['62', 'Рязанская область', 2], ['63,163,763', 'Самарская область', 1], ['64,164', 'Саратовская область', 2], ['65', 'Сахалинская область', 2],
+  ['66,96,196', 'Свердловская область', 1], ['67', 'Смоленская область', 2], ['68', 'Тамбовская область', 3], ['69', 'Тверская область', 2],
+  ['70', 'Томская область', 2], ['71', 'Тульская область', 2], ['72', 'Тюменская область', 2], ['73,173', 'Ульяновская область', 2],
+  ['74,174,774', 'Челябинская область', 1], ['75,80', 'Забайкальский край', 3], ['76', 'Ярославская область', 2], ['77,97,99,177,197,199,777,797,799', 'Москва', 1],
+  ['78,98,178,198', 'Санкт-Петербург', 1], ['79', 'Еврейская автономная область', 3], ['82', 'Республика Крым', 1], ['83', 'Ненецкий автономный округ', 3],
+  ['86,186', 'Ханты-Мансийский АО — Югра', 2], ['87', 'Чукотский автономный округ', 3], ['89', 'Ямало-Ненецкий автономный округ', 3], ['92', 'Севастополь', 2],
+  ['94', 'Байконур', 3], ['95', 'Чеченская Республика', 1]
+].map(function (r) { return {code: r[0].split(','), name: r[1], tier: r[2], type: /Республика/.test(r[1]) ? 0 : /область|округ|АО/.test(r[1]) ? 1 : /край/.test(r[1]) ? 2 : 3}; });
+var rgBet = 0, rgStreak = 0, rgLive = false, rgLock = false, rgRd = null, rgLast = null;
+var RG_M = [1.3, 1.8, 2.5, 3.5, 5, 7, 10, 14, 20, 28, 40, 56, 80, 110, 150];   /* 4 варианта ответа — рост примерно ×1,4 за шаг */
+function rgMult(n) { if (n <= 0) return 1; if (n <= RG_M.length) return RG_M[n - 1]; return RG_M[RG_M.length - 1] * Math.pow(1.4, n - RG_M.length); }
+function rgBank() { return Math.floor(rgBet * rgMult(rgStreak)); }
+function RG_CARD() {
+  return '<button type="button" class="mgc" data-mg="rg"><span class="mi">🗺️</span><h3>Угадай регион</h3><p>Покажем номер — выбери, из какого он региона. Просто для развлечения, без денег: играй на рекорд серии.</p><span class="mb">🏆 Рекорд серии: ' + (S.mg.rbest || 0) + '</span></button>';
+}
+function rgLadder(cur, from) {
+  var h = '<div class="wdlad">'; for (var i = from; i < from + 7; i++) h += '<span class="' + (i < cur ? 'done' : i === cur ? 'now' : '') + '"><small>' + i + '</small>' + wdFmtM(rgMult(i)) + '</span>'; return h + '</div>';
+}
+function rgSetup() {
+  mgView = 'rg'; rgLive = false; rgStreak = 0; rgBet = 0;
+  $('#v-minigames').innerHTML = '<div class="wd"><div class="wdtop"><button type="button" class="upm-btn" id="rgBack">← К мини играм</button></div><h3 class="wdq">🗺️ Угадай регион</h3>' +
+    '<div class="upbox" style="width:100%;max-width:520px"><div class="wdscore"><span>Рекорд серии <b>' + (S.mg.rbest || 0) + '</b></span></div>' +
+    '<button type="button" class="btn" id="rgFree">🎈 Играть</button>' +
+    '<p style="margin:0;color:var(--mut);font-size:13px;line-height:1.4">Покажем номер, а ты выбираешь регион из четырёх. Просто для удовольствия — без денег и ставок. Чем длиннее серия, тем сложнее вопросы и тем похожее варианты. Ошибка — серия заканчивается, можно сыграть снова и побить рекорд.</p></div></div>';
+}
+function rgSetupTot() {
+  var t = $('#rgTot'); if (t) t.innerHTML = 'Ставка: <b>' + money(rgBet) + '</b> · первая победа вернёт <b>' + money(Math.floor(rgBet * rgMult(1))) + '</b>';
+  var b = $('#rgStart'); if (b) b.disabled = rgBet < 100 || rgBet > S.balance;
+  var lv = $('#rgLv'); if (lv) { var L = wdLevel(rgBet); lv.innerHTML = 'Сложность: <b>' + (rgBet >= 100 ? WD_LV[L][0] : '—') + '</b>' + '<span>' + WD_LV.map(function (x, i) { return '<i class="' + (rgBet >= 100 && i <= L ? 'on' : '') + '"></i>'; }).join('') + '</span>'; }
+}
+/* сложность растёт с банком и с длиной серии: реже известные регионы, всё более похожие варианты */
+function rgDiff() {
+  var bank = rgBet > 0 ? Math.max(rgBank(), rgBet) : 0, base = bank > 0 ? Math.min(6.3, Math.max(0, Math.log10(bank / 1000))) : 0;
+  return Math.min(7, base + rgStreak * (rgBet > 0 ? .1 : .3));
+}
+function rgPick() {
+  var d = rgDiff(), w = [Math.max(.05, 3 - d * .5), 1 + Math.min(d, 3) * .3, d * .45], tot = 0, x, i, r, code, opts, dg;
+  var cand = RG.filter(function (q) { return q !== rgLast; });
+  cand.forEach(function (q) { tot += w[q.tier - 1]; });
+  x = Math.random() * tot;
+  for (i = 0; i < cand.length; i++) { x -= w[cand[i].tier - 1]; if (x <= 0) break; }
+  r = cand[Math.min(i, cand.length - 1)]; rgLast = r;
+  code = (r.code.length > 1 && Math.random() < Math.min(.7, d * .12)) ? rnd(r.code.slice(1)) : r.code[0];
+  opts = [r];
+  while (opts.length < 4) {
+    var same = Math.random() < Math.min(.85, d * .15);
+    dg = RG.filter(function (q) { return opts.indexOf(q) < 0 && (!same || q.type === r.type); });
+    if (!dg.length) dg = RG.filter(function (q) { return opts.indexOf(q) < 0; });
+    opts.push(rnd(dg));
+  }
+  opts.sort(function () { return Math.random() - .5; });
+  var dd = ('00' + Math.floor(Math.random() * 1000)).slice(-3); if (dd === '000') dd = '001';
+  return {r: r, code: code, opts: opts, plate: {c: 'RU', t: rnd(LET) + dd + rnd(LET) + rnd(LET), reg: code, rar: 0, price: 0, feats: []}};
+}
+function rgHead() {
+  return '<div class="wdscore"><span>Серия <b id="rgS">' + rgStreak + '</b></span><span>Рекорд <b>' + (S.mg.rbest || 0) + '</b></span>' +
+    '<span>Сложность <b style="font-size:16px">' + (rgBet > 0 ? WD_LV[wdLevel(rgBank())][0] : 'Фан') + '</b></span>' + (rgBet > 0 ? '<span>Ставка <b style="font-size:18px">' + money(rgBet) + '</b></span><span>В банке <b id="rgBk" style="font-size:18px">' + money(rgBank()) + '</b></span>' : '') + '</div>';
+}
+function rgRound() {
+  rgRd = rgPick(); rgLock = false;
+  $('#v-minigames').innerHTML = '<div class="wd"><div class="wdtop"><button type="button" class="upm-btn" id="rgBack">← К мини играм</button>' + rgHead() + '</div>' +
+    (rgBet > 0 ? rgLadder(rgStreak + 1, Math.max(1, rgStreak)) : '') +
+    '<h3 class="wdq">Из какого региона номер?</h3><div class="rgp">' + plateHTML(rgRd.plate, 0) + '</div><div class="rgopts">' +
+    rgRd.opts.map(function (o, i) { return '<button type="button" class="wdc rgo" data-rg="' + i + '" style="animation-delay:' + (i * 70) + 'ms">' + o.name + '</button>'; }).join('') +
+    '</div><div class="wdmsg" id="rgM">Выбери регион, которому принадлежит код на номере</div><div class="rgcodes" id="rgI"></div><div id="rgEnd"></div></div>';
+}
+function rgStart(bet) {
+  bet = 0;   /* только фан-режим: без денег */
+  if (bet > 0) { if (bet < 100 || bet > S.balance) { toast('Ставка недоступна'); return; } S.balance -= bet; save(); showBalance(); }
+  rgBet = bet; rgStreak = 0; rgLive = true; mgView = 'rg'; rgLast = null; rgRound();
+}
+function rgCash() {
+  if (!rgLive || rgBet <= 0 || rgStreak < 1) return;
+  var win = rgBank(), btn = $('#rgCash'), c = center(btn || $('#rgEnd'));
+  rgLive = false; S.balance += win; save(); showBalance();
+  flash('#ffd24a', .5); burst(c.x, c.y, 160, GOLD, 1.5, true); sparks(c.x, c.y, 40, '#ffd24a');
+  $('#rgEnd').innerHTML = '<div class="wdend"><div style="font:600 13px Manrope,sans-serif;color:var(--mut);letter-spacing:.14em;text-transform:uppercase">Выигрыш забран</div><div class="big">+' + money(win - rgBet) + '</div><div class="rec">Серия: ' + rgStreak + ' · ' + wdFmtM(rgMult(rgStreak)) + ' от ставки ' + money(rgBet) + '</div><button type="button" class="btn" id="rgAgain">🔁 Играть снова</button></div>';
+  $('#rgM').textContent = ''; document.querySelectorAll('.rgo').forEach(function (x) { x.disabled = true; });
+}
+document.addEventListener('click', function (e) {
+  var t;
+  if ((t = e.target.closest('[data-mg]')) && t.dataset.mg === 'rg') { rgSetup(); return; }
+  if (e.target.closest('#rgBack')) {
+    if (rgLive && rgBet > 0 && !confirm('Выйти из игры? Ставка сгорит. Чтобы сохранить выигрыш, нажми «Забрать».')) return;
+    rgLive = false; mgView = 'menu'; renderMini(); return;
+  }
+  if ((t = e.target.closest('[data-rgq]'))) { var v = +t.dataset.rgq; rgBet = v ? Math.min(Math.floor(S.balance), rgBet + v) : 0; $('#rgInp').value = rgBet || ''; rgSetupTot(); return; }
+  if (e.target.closest('#rgStart')) { rgStart(rgBet); return; }
+  if (e.target.closest('#rgFree')) { rgStart(0); return; }
+  if (e.target.closest('#rgCash')) { rgCash(); return; }
+  if (e.target.closest('#rgNext')) { if (rgLive) rgRound(); return; }
+  if (e.target.closest('#rgAgain')) { rgStart(0); return; }
+  if ((t = e.target.closest('[data-rg]')) && !rgLock && !t.disabled && rgLive) rgGuess(+t.dataset.rg);
+});
+document.addEventListener('input', function (e) {
+  if (e.target.id !== 'rgInp') return;
+  rgBet = Math.min(Math.floor(S.balance), Math.max(0, Math.floor(+String(e.target.value).replace(/\D/g, '') || 0))); rgSetupTot();
+});
+async function rgGuess(i) {
+  rgLock = true;
+  var btns = document.querySelectorAll('.rgo'), rd = rgRd, ci = rd.opts.indexOf(rd.r), ok = i === ci, msg = $('#rgM');
+  btns.forEach(function (b) { b.disabled = true; });
+  msg.className = 'wdmsg'; msg.textContent = 'Проверяем…';
+  await sleep(700);
+  if (mgView !== 'rg' || !document.body.contains(btns[0])) return;
+  var c0 = center(btns[i]), cb = center(btns[ci]);
+  btns[ci].insertAdjacentHTML('afterbegin', '<span class="wdk">👑</span>');
+  $('#rgI').innerHTML = 'Код <b>' + rd.code + '</b> — ' + rd.r.name + (rd.r.code.length > 1 ? ' · все коды: ' + rd.r.code.join(', ') : '');
+  if (ok) {
+    btns[i].classList.add('win'); btns.forEach(function (b, k) { if (k !== i) b.classList.add('dim'); });
+    track('rgwin'); rgStreak++; var sb = $('#rgS'); sb.textContent = rgStreak; sb.classList.add('bump');
+    if (rgStreak > (S.mg.rbest || 0)) { S.mg.rbest = rgStreak; save(); }
+    msg.className = 'wdmsg ok'; msg.textContent = 'Верно! ' + (rgStreak >= 3 ? '🔥 ' : '') + 'Серия: ' + rgStreak;
+    burst(c0.x, c0.y, 70 + Math.min(rgStreak, 10) * 8, GOLD, 1.1, true); sparks(c0.x, c0.y, 20, '#4ade80');
+    if (rgStreak % 5 === 0) flash('#ffd24a', .3);
+    if (rgBet > 0) {
+      var bk = $('#rgBk'); bk.textContent = money(rgBank()); bk.classList.add('bump');
+      await sleep(500);
+      $('#rgEnd').innerHTML = '<div class="wdact"><button type="button" class="btn" id="rgCash">💰 Забрать ' + money(rgBank()) + '</button><button type="button" class="btn" id="rgNext" style="background:linear-gradient(90deg,#8b5cf6,#6d5cff);color:#fff">🎲 Рискнуть: ' + wdFmtM(rgMult(rgStreak + 1)) + ' → ' + money(Math.floor(rgBet * rgMult(rgStreak + 1))) + '</button></div>';
+    } else {
+      await sleep(1900);
+      if (mgView === 'rg' && rgLive) rgRound();
+    }
+  } else {
+    rgLive = false;
+    btns[i].classList.add('lose'); btns[ci].classList.add('top');
+    msg.className = 'wdmsg no'; msg.textContent = 'Не угадал — это другой регион';
+    flash('#ff2e63', .3); sparks(c0.x, c0.y, 18, '#ff5a7f'); burst(cb.x, cb.y, 40, GOLD, .9, true);
+    var rec = rgStreak > 0 && rgStreak >= (S.mg.rbest || 0);
+    S.mg.rgames = (S.mg.rgames || 0) + 1; save();
+    await sleep(900);
+    $('#rgEnd').innerHTML = '<div class="wdend"><div style="font:600 13px Manrope,sans-serif;color:var(--mut);letter-spacing:.14em;text-transform:uppercase">Твоя серия</div><div class="big">' + rgStreak + '</div>' +
+      (rgBet > 0 ? '<div style="color:#ff6a7a;font:700 17px Manrope,sans-serif">Потеряно: ' + money(rgBet) + '</div>' : '') +
+      (rec ? '<div class="rec">🏆 Новый рекорд!</div>' : '<div style="color:var(--mut);font-size:14px">Рекорд: ' + (S.mg.rbest || 0) + '</div>') + '<button type="button" class="btn" id="rgAgain">🔁 Играть снова</button></div>';
   }
 }
 
@@ -1634,7 +1795,7 @@ document.addEventListener('click', function (e) {
   if (!cl || cl.disabled || !dailyReady()) return;
   var pt = center($('#dChest') || cl);
   var dn = dayIdx() + 1; DAYS[dn - 1].forEach(function (x) { pushReward(x.t === 'd' ? {type: 'donate', donate: x.n, from: 'Ежедневный подарок · день ' + dn} : {type: 'case', caseId: x.id, n: x.n, from: 'Ежедневный подарок · день ' + dn}); });
-  S.dailyAt = nowT(); S.dailyN = (S.dailyN || 0) + 1; save();
+  S.dailyAt = nowT(); S.dailyN = (S.dailyN || 0) + 1; save(); passTrack('daily');
   lastDailyReady = false; dlyPop = true; refresh();
   flash('#ffd24a', .4); burst(pt.x, pt.y, 130, GOLD, 1.3, true); sparks(pt.x, pt.y, 30, '#ffd24a');
   toast('День ' + dn + ' получен! Награда — во вкладке «Награды». Следующая — через 24 часа');
@@ -1827,6 +1988,242 @@ document.addEventListener('click', function (e) {
   }, (els.length ? (els.length - 1) * 90 : 0) + 520);
 });
 
+/* ===== Spin Pass Silver: бесплатная линейка на 100 уровней + задания ===== */
+var PASS_LV = 100, PASS_XPL = 200, passTab = 'rew', passAnim = false;
+var PASS_MAIN = {
+  30: {title: 'Золотая рамка №1', items: [{t: 'frame', id: 'p_gold1'}]},
+  60: {title: 'Чёрная карточка', items: [{t: 'card'}]},
+  100: {title: 'Комплект: авто + рамка', items: [{t: 'car', id: 2}, {t: 'frame', id: 'p_silver100'}]}
+};
+function passRew(l) {
+  if (PASS_MAIN[l]) return {main: true, title: PASS_MAIN[l].title, items: PASS_MAIN[l].items};
+  if (l % 10 === 0) return {items: [{t: 'key', id: 'silver', n: 1}]};
+  if (l % 5 === 0) return {items: [{t: 'don', n: 10 + 2 * (l / 5)}]};
+  if (l % 5 === 2) return {items: [{t: 'key', id: 'bronze', n: 1}]};
+  return {items: [{t: 'cash', n: 2000 + l * 500}]};
+}
+/* сезон: 40 дней (≈30 дней на прохождение + запас 10 дней), конец — 13 декабря 2026, 00:00 */
+var PASS_END = new Date(2026, 11, 13, 0, 0, 0).getTime();
+function passLeft() { return PASS_END - nowT(); }
+function passOver() { return passLeft() <= 0; }
+function passEndTxt() { return passOver() ? 'Сезон завершён' : 'До конца сезона: ' + untilText(passLeft()); }
+var PASS_GOLD_COST = 700, PASS_GOLD_XP = 1.2;
+function passRewG(l) {
+  if (PASS_MAIN[l]) return {main: true, title: 'Тайная награда', items: [{t: 'mys'}]};
+  var m = l % 10;
+  if (l === 90) return {items: [{t: 'key', id: 'diamond', n: 1}]};
+  if (l % 40 === 10) return {items: [{t: 'key', id: 'gold', n: 1}]};
+  if (m === 0) return {items: [{t: 'key', id: 'silver', n: 3}]};
+  if (m === 5) return {items: [{t: 'don', n: 25 + 4 * ((l - 5) / 10 * 2 + 1)}]};
+  var k = l % 5;
+  if (k === 1) return {items: [{t: 'cash', n: 20000 + l * 2500}]};
+  if (k === 2) return {items: [{t: 'key', id: 'silver', n: 1}]};
+  if (k === 3) return {items: [{t: 'don', n: 20}]};
+  return {items: [{t: 'spins', n: 10 + Math.floor(l / 10) * 2}]};
+}
+function passR(l, g) { return g ? passRewG(l) : passRew(l); }
+function passItemTxt(it) {
+  if (it.t === 'spins') return it.n + ' ' + pl(it.n, 'бесплатный прокрут', 'бесплатных прокрута', 'бесплатных прокрутов');
+  if (it.t === 'mys') return 'Тайная награда';
+  if (it.t === 'cash') return money(it.n);
+  if (it.t === 'don') return '+' + it.n + ' доната';
+  if (it.t === 'key') return caseById(it.id).name + (it.n > 1 ? ' ×' + it.n : '');
+  if (it.t === 'frame') return 'Рамка «' + FRAME_MAP[it.id].name + '»';
+  if (it.t === 'card') return 'Чёрная карточка';
+  if (it.t === 'car') return CARS[it.id].name + ' ' + CARS[it.id].sub;
+  return '';
+}
+function passItemIco(it) { return {mys: '❓', spins: '🎰', cash: '💰', don: '🪙', key: '🗝', frame: '🖼', card: '💳', car: '🚗'}[it.t] || '🎁'; }
+function passFrames(id) { return (S.pass && S.pass.fr && S.pass.fr[id]) || 0; }
+var PD = [
+  {k:'spin', ev:'spin', n:[10,15,20], r:[50,70,90], t:function (n) { return 'Выбей ' + n + ' ' + pl(n, 'номер', 'номера', 'номеров'); }},
+  {k:'rar2', ev:'rar', rmin:2, n:[1], r:[70], t:function () { return 'Выбей номер редкости «Редкий» или выше'; }},
+  {k:'rar3', ev:'rar', rmin:3, n:[1], r:[110], t:function () { return 'Выбей «Эпический» номер или выше'; }},
+  {k:'keep', ev:'keep', n:[3,5], r:[50,70], t:function (n) { return 'Оставь ' + n + ' ' + pl(n, 'номер', 'номера', 'номеров') + ' в инвентаре'; }},
+  {k:'sell', ev:'sell', n:[5,8], r:[50,70], t:function (n) { return 'Продай ' + n + ' ' + pl(n, 'номер', 'номера', 'номеров'); }},
+  {k:'case', ev:'case', n:[2,3], r:[70,90], t:function (n) { return 'Открой ' + n + ' ' + pl(n, 'кейс', 'кейса', 'кейсов'); }},
+  {k:'wd', ev:'wdwin', n:[3,5], r:[60,90], t:function (n) { return 'Угадай ' + n + ' ' + pl(n, 'раз', 'раза', 'раз') + ' в «Что дороже?»'; }},
+  {k:'rg', ev:'rgwin', n:[3,5], r:[60,90], t:function (n) { return 'Угадай ' + n + ' ' + pl(n, 'регион', 'региона', 'регионов') + ' в «Угадай регион»'; }},
+  {k:'daily', ev:'daily', n:[1], r:[60], t:function () { return 'Забери ежедневный подарок в «Бонусах»'; }},
+  {k:'mis', ev:'mis', n:[1], r:[60], t:function () { return 'Выполни и забери одну миссию'; }}
+];
+var PW = [
+  {k:'spin', ev:'spin', n:[60,90], r:[250,350], t:function (n) { return 'Выбей ' + n + ' номеров за неделю'; }},
+  {k:'rar3', ev:'rar', rmin:3, n:[3], r:[350], t:function () { return 'Выбей 3 номера редкости «Эпический» и выше'; }},
+  {k:'case', ev:'case', n:[10,15], r:[300,400], t:function (n) { return 'Открой ' + n + ' кейсов'; }},
+  {k:'wd', ev:'wdwin', n:[20,30], r:[250,350], t:function (n) { return 'Угадай ' + n + ' раз в «Что дороже?»'; }},
+  {k:'rg', ev:'rgwin', n:[20,30], r:[250,350], t:function (n) { return 'Угадай ' + n + ' регионов в «Угадай регион»'; }},
+  {k:'keep', ev:'keep', n:[12], r:[250], t:function () { return 'Оставь 12 номеров в инвентаре'; }},
+  {k:'daily', ev:'daily', n:[5], r:[300], t:function () { return 'Забери ежедневный подарок 5 раз'; }},
+  {k:'mis', ev:'mis', n:[8], r:[400], t:function () { return 'Выполни и забери 8 миссий'; }},
+  {k:'frame', ev:'frame', n:[1], r:[300], t:function () { return 'Надень рамку на номер'; }}
+];
+var PASS_BD = 100, PASS_BW = 300;   /* бонус за все ежедневные / все недельные задания */
+function passYesterday() { var d = new Date(nowT() - DAY_MS); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function ensurePass() {
+  var P = S.pass, today = dayKey(), wk = weekKey(), fr = S.pass === null;
+  if (!P) P = S.pass = {xp: 0, cl: {}, d: '', dl: [], w: '', wl: [], wd: [], lg: '', st: 0, bd: false, bw: false, fr: {}, cards: 0};
+  if (!P.cl || typeof P.cl !== 'object') P.cl = {}; if (!P.gcl || typeof P.gcl !== 'object') P.gcl = {}; P.gold = !!P.gold; P.mys = P.mys || 0; if (!P.fr || typeof P.fr !== 'object') P.fr = {}; if (!Array.isArray(P.wd)) P.wd = [];
+  if (P.d !== today) { P.d = today; P.bd = false; P.dl = [{k:'login', ev:'login', rmin:0, need:1, prog:0, reward:30, text:'Зайди в игру', claimed:false}].concat(pickMis(PD, 'pd' + today, 4, false)); }
+  if (P.w !== wk) { P.w = wk; P.bw = false; P.wd = []; P.wl = [{k:'login', ev:'login', rmin:0, need:5, prog:0, reward:300, text:'Заходи в игру 5 разных дней за неделю', claimed:false, weekly:true}].concat(pickMis(PW, 'pw' + wk, 4, true)); }
+  if (P.lg !== today) { P.st = (P.lg === passYesterday()) ? (P.st || 0) + 1 : 1; P.lg = today; }
+  if (P.wd.indexOf(today) < 0) P.wd.push(today);
+  var lq = P.dl[0], wq = P.wl[0];
+  if (lq && lq.k === 'login') { lq.prog = 1; if (!lq.claimed) lq.reward = 30 + Math.min(P.st, 7) * 10; lq.text = 'Зайди в игру · серия ' + P.st + ' ' + pl(P.st, 'день', 'дня', 'дней'); }
+  if (wq && wq.k === 'login') wq.prog = Math.min(wq.need, P.wd.length);
+  return P;
+}
+function passLevel() { return Math.min(PASS_LV, Math.floor(ensurePass().xp / PASS_XPL)); }
+function passAddXp(n) {
+  if (passOver()) return;
+  var P = ensurePass(), a = passLevel(); P.xp = Math.min(PASS_LV * PASS_XPL, P.xp + n); var b = passLevel();
+  if (b > a) { popAch('🎟', 'Spin Pass: уровень ' + b, 'Забери награду в разделе Spin Pass'); flash('#ffd24a', .2); }
+  for (var l = a + 1; l <= b; l++) if (PASS_MAIN[l]) popAch('🏆', 'Главная награда Spin Pass!', PASS_MAIN[l].title + ' — уровень ' + l);
+}
+function passTrack(ev, x, n) {
+  n = n || 1; var P = ensurePass(); if (passOver()) return;
+  P.dl.concat(P.wl).forEach(function (m) {
+    if (m.claimed || m.prog >= m.need || m.ev !== ev) return;
+    if (ev === 'rar' && x < m.rmin) return;
+    m.prog = Math.min(m.need, m.prog + n);
+    if (m.prog >= m.need) popAch('🎟', 'Задание Spin Pass выполнено', m.text);
+  });
+  updPassBadge(); if (view === 'pass') renderPass();
+}
+function passCnt() {
+  var P = ensurePass(), L = passLevel(), n = 0, l;
+  for (l = 1; l <= L; l++) { if (!P.cl[l]) n++; if (P.gold && !P.gcl[l]) n++; }
+  return n;
+}
+function passQCnt() {
+  var P = ensurePass(), n = P.dl.concat(P.wl).filter(function (m) { return m.prog >= m.need && !m.claimed; }).length;
+  if (!P.bd && P.dl.every(function (m) { return m.claimed; })) n++;
+  if (!P.bw && P.wl.every(function (m) { return m.claimed; })) n++;
+  return n;
+}
+function updPassBadge() { var b = $('#cPass'); if (!b) return; var n = passCnt() + passQCnt(); b.hidden = !n; b.textContent = n; }
+function passApply(items) {
+  var P = ensurePass();
+  items.forEach(function (it) {
+    if (it.t === 'cash') S.balance += it.n;
+    else if (it.t === 'don') addDonate(it.n);
+    else if (it.t === 'key') S.free[it.id] = (S.free[it.id] || 0) + it.n;
+    else if (it.t === 'frame') P.fr[it.id] = (P.fr[it.id] || 0) + 1;
+    else if (it.t === 'card') P.cards = (P.cards || 0) + 1;
+    else if (it.t === 'spins') S.fs = (S.fs || 0) + it.n;
+    else if (it.t === 'mys') P.mys = (P.mys || 0) + 1;
+    else if (it.t === 'car') S.cars.push({id: it.id, plate: null});
+  });
+}
+function passClaim(ls, el, g) {
+  var P = ensurePass(), L = passLevel(), got = [], main = false;
+  ls.forEach(function (l) {
+    [false, true].forEach(function (gd) {
+      if (g !== undefined && g !== gd) return;
+      var cl = gd ? P.gcl : P.cl;
+      if (l > L || cl[l] || (gd && !P.gold)) return;
+      var r = passR(l, gd); cl[l] = true; passApply(r.items); if (r.main) main = true;
+      r.items.forEach(function (it) { got.push(passItemTxt(it)); });
+    });
+  });
+  if (!got.length) return;
+  save(); refresh();
+  var c = el ? center(el) : {x: innerWidth / 2, y: innerHeight / 2};
+  if (main) { flash('#ffd24a', .5); burst(c.x, c.y, 190, GOLD, 1.5, true); sparks(c.x, c.y, 50, '#ffd24a'); }
+  else { burst(c.x, c.y, 50, GOLD, 1, true); sparks(c.x, c.y, 14, '#ffd24a'); }
+  toast('Получено: ' + (got.length > 4 ? got.length + ' наград' : got.join(', ')));
+}
+function passTile(l, g) {
+  var P = ensurePass(), L = passLevel(), r = passR(l, g), got = !!(g ? P.gcl : P.cl)[l], rdy = l <= L && !got && (!g || P.gold);
+  var cls = 'spl' + (r.main ? ' main' : '') + (got ? ' got' : rdy ? ' rdy' : ' lock');
+  var body = r.items.map(function (it) { return '<div class="spi"><span class="sic' + (it.t === 'mys' ? ' sq' : '') + '">' + passItemIco(it) + '</span><span class="sit">' + passItemTxt(it) + '</span></div>'; }).join('');
+  return '<button type="button" class="' + cls + '" data-pl="' + l + '" data-pg="' + (g ? 1 : 0) + '">' + (r.main ? '<em class="spm">★ ГЛАВНАЯ НАГРАДА ★</em>' : '') +
+    '<span class="spn">Ур. ' + l + '</span>' + (r.main ? '<b class="spt">' + r.title + '</b>' : '') + body +
+    '<span class="sps">' + (got ? '✓ Получено' : rdy ? 'Забрать' : g && !P.gold ? '🔒 Gold' : '🔒') + '</span></button>';
+}
+function passQuest(m, key, i) {
+  var ok = m.prog >= m.need;
+  return '<div class="card ms' + (ok && !m.claimed ? ' rdy' : '') + (m.claimed ? ' dn' : '') + '"><div class="mst"><b>' + m.text + '</b><span class="mrw">+' + m.reward + ' XP</span></div><div class="pbar"><i style="width:' + (m.prog / m.need * 100) + '%"></i></div><div class="msb"><small>' + m.prog + ' / ' + m.need + '</small>' +
+    (m.claimed ? '<span class="cdone">✓ Получено</span>' : '<button type="button" class="btn sm" data-pq="' + key + ':' + i + '"' + (ok ? '' : ' disabled') + '>' + (ok ? 'Забрать' : 'В процессе') + '</button>') + '</div></div>';
+}
+function passBonus(key, done, xp, text) {
+  return '<div class="card ms spb' + (done ? ' rdy' : '') + '"><div class="mst"><b>🎁 ' + text + '</b><span class="mrw">+' + xp + ' XP</span></div><div class="msb"><small>' + (done ? 'Все задания выполнены' : 'Забери все задания списка') + '</small>' +
+    '<button type="button" class="btn sm" data-pq="' + key + '"' + (done ? '' : ' disabled') + '>Забрать</button></div></div>';
+}
+function passTimes() {
+  var now = new Date(), mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1), mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - (now.getDay() + 6) % 7));
+  return [untilText(mid - now), untilText(mon - now)];
+}
+function renderPass() {
+  if (view !== 'pass') return;
+  var P = ensurePass(), L = passLevel(), cur = P.xp - L * PASS_XPL, full = L >= PASS_LV, cn = passCnt(), anim = passAnim, tm = passTimes();
+  var nextMain = [30, 60, 100].filter(function (l) { return l > L; })[0];
+  var gt = passTab === 'gold', cn2 = passQCnt();
+  var h = '<h2>Spin Pass</h2><div class="sp-head' + (gt ? ' gold' : '') + '">' +
+    (gt ? '<div class="sp-tier g">♛ GOLD <small>премиум · 100 уровней</small></div>' : '<div class="sp-tier">SILVER <small>бесплатный · 100 уровней</small></div>') +
+    '<div class="sp-end' + (passLeft() < 7 * DAY_MS ? ' warn' : '') + '" id="spE">⏳ ' + passEndTxt() + '</div><div class="sp-lv"><span>Уровень</span><b>' + L + '</b><span>/ ' + PASS_LV + '</span></div>' +
+    '<div class="pbar"><i style="width:' + (full ? 100 : cur / PASS_XPL * 100) + '%"></i></div>' +
+    '<div class="sp-xp">' + (full ? 'Пропуск пройден полностью 🎉' : 'Опыт: <b>' + cur + ' / ' + PASS_XPL + '</b> до уровня ' + (L + 1)) + ' · общий для Silver и Gold</div>' +
+    (nextMain ? '<div class="sp-next">До главной награды (ур. ' + nextMain + '): <b>' + (nextMain - L) + ' ' + pl(nextMain - L, 'уровень', 'уровня', 'уровней') + '</b></div>' : '') +
+    (P.cards ? '<div class="sp-next">💳 Чёрных карточек: <b>' + P.cards + '</b> — позже обменяются на автомобиль</div>' : '') +
+    (P.mys ? '<div class="sp-next">❓ Тайных наград Gold: <b>' + P.mys + '</b> — будут раскрыты позже</div>' : '') +
+    (gt && !P.gold && passOver() ? '<div class="sp-own" style="color:#ff6a7a">Сезон завершён — Gold больше не продаётся</div>' : '') + (gt ? (P.gold ? '<div class="sp-own">✓ Spin Pass Gold активирован · +20% опыта за задания</div>'
+      : '<ul class="sp-perks"><li>Награды намного ценнее: Золотые и Алмазный ключи, донат, большие суммы, бесплатные прокруты</li><li>3 главные награды на уровнях 30, 60 и 100</li><li>+20% опыта за все задания</li><li>Все уже пройденные уровни забираются сразу после покупки</li></ul><button type="button" class="btn gbuy" id="gBuy"><img class="coin" src="' + coinImg() + '" alt="">Купить за ' + PASS_GOLD_COST + '</button>') : '') +
+    (cn ? '<button type="button" class="btn" id="plAll">🎁 Забрать всё (' + cn + ')</button>' : '') + '</div>' +
+    '<div class="btabs" style="grid-template-columns:repeat(3,minmax(0,1fr));max-width:760px"><button type="button" class="btab' + (passTab === 'rew' ? ' on' : '') + '" data-ptab="rew"><span class="ti">🎁</span><span class="tt"><b>Silver</b><small>Бесплатно</small></span></button>' +
+    '<button type="button" class="btab gtab' + (gt ? ' on' : '') + '" data-ptab="gold"><span class="ti">♛</span><span class="tt"><b>Gold</b><small>' + (P.gold ? 'Активен' : PASS_GOLD_COST + ' доната') + '</small></span></button>' +
+    '<button type="button" class="btab' + (passTab === 'q' ? ' on' : '') + '" data-ptab="q"><span class="ti">🎯</span><span class="tt"><b>Задания</b><small>Опыт</small></span>' + (cn2 ? '<span class="tb hot">' + cn2 + '</span>' : '') + '</button></div>';
+  if (passTab === 'rew' || gt) {
+    h += '<div class="spg' + (gt ? ' gold' : '') + (anim ? ' in' : '') + '">';
+    for (var l = 1; l <= PASS_LV; l++) {
+      if (l % 10 === 1) h += '<div class="sph">Уровни ' + l + '–' + (l + 9) + '</div>';
+      h += passTile(l, gt);
+    }
+    h += '</div>';
+  } else {
+    var dAll = P.dl.every(function (m) { return m.claimed; }), wAll = P.wl.every(function (m) { return m.claimed; });
+    h += '<div class="mw' + (anim ? ' spq-in' : '') + '"><div class="card sp-streak"><b>🔥 Серия заходов: ' + P.st + ' ' + pl(P.st, 'день', 'дня', 'дней') + '</b><small>Заходи каждый день: награда за заход растёт до 7 дней подряд (+10 XP за каждый день серии). Пропустишь день — серия начнётся заново.</small></div>' +
+      '<div class="mh"><h3>☀️ Ежедневные задания</h3><span id="spT">Обновятся через ' + tm[0] + '</span></div>' +
+      P.dl.map(function (m, i) { return passQuest(m, 'd', i); }).join('') + passBonus('bd', dAll && !P.bd, PASS_BD, 'Бонус за все ежедневные') +
+      '<div class="mh" style="margin-top:22px"><h3>📅 Недельные задания</h3><span id="spW">Обновятся через ' + tm[1] + '</span></div>' +
+      P.wl.map(function (m, i) { return passQuest(m, 'w', i); }).join('') + passBonus('bw', wAll && !P.bw, PASS_BW, 'Бонус за все недельные') + '</div>';
+  }
+  $('#v-pass').innerHTML = h; passAnim = false;
+}
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-ptab]');
+  if (t) { passTab = t.dataset.ptab; passAnim = true; renderPass(); return; }
+  if (e.target.closest('#gBuy')) {
+    var P0 = ensurePass(); if (P0.gold) return;
+    if (passOver()) { toast('Сезон завершён — покупка недоступна'); return; }
+    if (S.donate < PASS_GOLD_COST) { toast('Не хватает доната: нужно ' + PASS_GOLD_COST + ', у тебя ' + S.donate); return; }
+    if (!confirm('Купить Spin Pass Gold за ' + PASS_GOLD_COST + ' доната?')) return;
+    var gc = center(e.target.closest('#gBuy'));
+    S.donate -= PASS_GOLD_COST; P0.gold = true; save(); showDonate(); refresh();
+    flash('#ffd24a', .55); burst(gc.x, gc.y, 200, GOLD, 1.6, true); sparks(gc.x, gc.y, 60, '#ffd24a');
+    toast('Spin Pass Gold активирован! Забирай награды'); return;
+  }
+  if (e.target.closest('#plAll')) { var ls = []; for (var i = 1; i <= PASS_LV; i++) ls.push(i); passClaim(ls, $('#plAll')); return; }
+  t = e.target.closest('[data-pl]');
+  if (t) { var l = +t.dataset.pl; var gd = t.dataset.pg === '1'; if (gd && !ensurePass().gold) { toast('Нужен Spin Pass Gold — ' + PASS_GOLD_COST + ' доната'); return; } if (l > passLevel()) { toast('Награда откроется на уровне ' + l + ' — выполняй задания'); return; } passClaim([l], t, gd); return; }
+  t = e.target.closest('[data-pq]');
+  if (t && !t.disabled) {
+    if (passOver()) { toast('Сезон завершён — опыт больше не начисляется'); return; }
+    var P = ensurePass(), q = t.dataset.pq.split(':'), c = center(t), xp = 0;
+    if (q[0] === 'bd' && !P.bd && P.dl.every(function (m) { return m.claimed; })) { P.bd = true; xp = PASS_BD; }
+    else if (q[0] === 'bw' && !P.bw && P.wl.every(function (m) { return m.claimed; })) { P.bw = true; xp = PASS_BW; }
+    else { var m = (q[0] === 'd' ? P.dl : P.wl)[+q[1]]; if (m && !m.claimed && m.prog >= m.need) { m.claimed = true; xp = m.reward; } }
+    if (!xp) return;
+    if (P.gold) xp = Math.round(xp * PASS_GOLD_XP);
+    passAddXp(xp); save(); refresh(); sparks(c.x, c.y, 20, '#ffd24a'); burst(c.x, c.y, 40, GOLD, 1, true); toast('Spin Pass: +' + xp + ' XP');
+  }
+});
+setInterval(function () {
+  if (S.pass && S.pass.d !== dayKey()) { ensurePass(); save(); updPassBadge(); if (view === 'pass') renderPass(); }
+  if (view !== 'pass') return;
+  var tm = passTimes(), a = $('#spT'), b = $('#spW'), en = $('#spE'); if (en) en.textContent = '⏳ ' + passEndTxt(); if (a) a.textContent = 'Обновятся через ' + tm[0]; if (b) b.textContent = 'Обновятся через ' + tm[1];
+}, 1000);
+
 /* ===== Прогресс: уровень, статистика, миссии, достижения, главная ===== */
 function pl(n, a, b, c) { n = Math.abs(n) % 100; var m = n % 10; return n > 10 && n < 20 ? c : m === 1 ? a : m > 1 && m < 5 ? b : c; }
 function xpNeed(l) { return 100 + (l - 1) * 60; }
@@ -1877,7 +2274,7 @@ function ensureMis() {
 }
 function misClaimable() { ensureMis(); return S.mis.list.concat(S.mis.wlist).filter(function (m) { return m.prog >= m.need && !m.claimed; }).length; }
 function updMisBadge() { var n = misClaimable(), b = $('#cMis'); if (!b) return; b.hidden = !n; b.textContent = n; }
-var XP_EV = {keep: 1, sell: 1, 'case': 6, wdwin: 3, frame: 5};
+var XP_EV = {keep: 1, sell: 1, 'case': 6, wdwin: 3, rgwin: 3, frame: 5};
 function track(ev, x, n) {
   n = n || 1; ensureMis();
   S.mis.list.concat(S.mis.wlist).forEach(function (m) {
@@ -1887,6 +2284,7 @@ function track(ev, x, n) {
     if (m.prog >= m.need) popAch('🎯', 'Миссия выполнена', m.text);
   });
   if (XP_EV[ev]) addXp(XP_EV[ev] * n);
+  passTrack(ev, x, n);
   checkAch(); updMisBadge();
   if (view === 'missions') renderMissions();
 }
@@ -2054,7 +2452,7 @@ document.addEventListener('click', function (e) {
   var t = e.target.closest('[data-mis]'); if (t && !t.disabled) {
     ensureMis(); var q = t.dataset.mis.split(':'), L = q[0] === 'd' ? S.mis.list : S.mis.wlist, m = L[+q[1]];
     if (!m || m.claimed || m.prog < m.need) return;
-    var c = center(t); m.claimed = true; S.stat.misDone++;
+    var c = center(t); m.claimed = true; S.stat.misDone++; passTrack('mis');
     pushReward({type: 'donate', donate: m.reward, from: (m.weekly ? 'Недельная' : 'Ежедневная') + ' миссия'});
     addXp(m.weekly ? 80 : 25); checkAch(); save(); refresh();
     sparks(c.x, c.y, 24, '#ffd24a'); burst(c.x, c.y, 60, GOLD, 1.1, true); toast('Награда отправлена в «Награды»'); return;
@@ -2065,7 +2463,7 @@ function renderProfile() {
   if (view !== 'profile') return;
   var st = S.stat, i = lvInfo(S.xp), mx = Math.max.apply(null, st.byRar.concat([1])), done = ACH.filter(function (a) { return S.ach[a.id]; }).length;
   var h = '<h2>Профиль</h2><div class="prof"><div class="pcard plv"><div class="plr"><svg viewBox="0 0 120 120"><circle class="g" cx="60" cy="60" r="52"/><circle class="v" cx="60" cy="60" r="52" stroke-dasharray="' + (2 * Math.PI * 52 * i.cur / i.need).toFixed(1) + ' 400" transform="rotate(-90 60 60)"/></svg><b>' + i.lv + '</b><small>уровень</small></div><div class="plt"><h3>Опыт</h3><div class="pbar"><i style="width:' + (i.cur / i.need * 100) + '%"></i></div><small>' + i.cur + ' / ' + i.need + ' XP до уровня ' + (i.lv + 1) + ' · награда +' + 5 * (i.lv + 1) + ' доната</small><small>Достижений: <b style="color:var(--gold)">' + done + ' / ' + ACH.length + '</b></small></div></div>' +
-    '<div class="pstats">' + [['Круток', st.spins.toLocaleString('ru-RU')], ['Потрачено на крутки', money(st.spent)], ['Оставлено / продано', st.kept + ' / ' + st.sold], ['Кейсов открыто', st.cases], ['Рекорд «Что дороже?»', S.mg.best || 0], ['Рамок куплено', st.frames], ['Миссий выполнено', st.misDone]].map(function (x) { return '<div class="ps"><small>' + x[0] + '</small><b>' + x[1] + '</b></div>'; }).join('') + '</div>' +
+    '<div class="pstats">' + [['Круток', st.spins.toLocaleString('ru-RU')], ['Потрачено на крутки', money(st.spent)], ['Оставлено / продано', st.kept + ' / ' + st.sold], ['Кейсов открыто', st.cases], ['Рекорд «Что дороже?»', S.mg.best || 0], ['Рекорд «Угадай регион»', S.mg.rbest || 0], ['Рамок куплено', st.frames], ['Миссий выполнено', st.misDone]].map(function (x) { return '<div class="ps"><small>' + x[0] + '</small><b>' + x[1] + '</b></div>'; }).join('') + '</div>' +
     '<div class="pcard"><h3>Самый дорогой номер</h3>' + (st.bestP ? '<div class="pbest">' + plateHTML(st.bestP, 0) + '</div><div class="pbp">' + RAR[st.bestP.rar][0] + ' · ' + money(st.bestP.price) + '</div>' : '<p class="empty" style="margin:0">Выбей первый номер — он появится здесь</p>') + '</div>' +
     '<div class="pcard"><h3>Выпало по редкостям</h3>' + RAR.map(function (r, k) { return '<div class="prr"><span style="color:' + r[1] + '">' + r[0] + '</span><div class="pbar"><i style="width:' + (st.byRar[k] / mx * 100) + '%;background:' + r[1] + '"></i></div><b>' + st.byRar[k] + '</b></div>'; }).join('') + '</div>' +
     '<h3 style="margin:8px 0 0">Достижения</h3><div class="agrid">' + ACH.map(function (a) {
