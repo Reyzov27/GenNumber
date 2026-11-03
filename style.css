@@ -1016,3 +1016,41 @@ input,select,textarea{font-size:16px} /* чтобы iOS не зумил стра
 .sp-end.warn{color:#ff9a6a;border-color:#8a3a1a;background:rgba(255,120,60,.1)}
 .sp-head.gold .sp-end{border-color:#6b5316;color:#ffd24a}
 
+/* ===== Донат ===== */
+.dn-card{max-width:760px;width:100%;margin-bottom:14px;align-items:stretch;gap:12px}
+.dn-card h3{font-size:22px}
+.dn-coin{width:20px;height:20px;object-fit:contain;vertical-align:-4px;margin:0 2px}
+.dn-list{display:flex;flex-direction:column;gap:8px}
+.dn-src{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:#0d0f12;border:1px solid var(--line)}
+.dn-ic{font-size:26px;flex:0 0 34px;text-align:center}
+.dn-tx{flex:1;min-width:0}
+.dn-tx b{display:block;font:700 15px Manrope,sans-serif;color:var(--txt)}
+.dn-tx small{display:block;font-size:13px;color:var(--mut);line-height:1.35;margin-top:2px}
+.dn-go{flex:0 0 auto}
+.dn-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font:600 15px Manrope,sans-serif;color:var(--mut)}
+.dn-row b{display:flex;align-items:center;gap:6px;color:var(--gold);font:700 24px Oswald,sans-serif}
+.dn-rate{padding:10px 12px;border-radius:12px;background:linear-gradient(90deg,#2a2110,#13161b);border:1px solid #6b5316;color:var(--txt);font:600 15px Manrope,sans-serif}
+.dn-rate b{color:var(--gold)}
+.dn-in{width:100%;padding:13px 14px;border-radius:12px;border:1px solid #2c303a;background:#0d0f12;color:var(--txt);font:600 16px Manrope,sans-serif;outline:0;-moz-appearance:textfield}
+.dn-in::-webkit-outer-spin-button,.dn-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.dn-in:focus{border-color:var(--gold);box-shadow:0 0 14px -4px var(--gold)}
+.dn-quick{display:flex;gap:8px;flex-wrap:wrap}
+.dn-quick button{padding:8px 16px;border-radius:20px;border:1px solid #2c303a;background:#15181d;color:var(--txt);font:600 13px Manrope,sans-serif;cursor:pointer}
+.dn-quick button:hover{border-color:var(--gold);color:var(--gold)}
+.dn-prev{font:700 15px Manrope,sans-serif;color:var(--gold);min-height:20px}
+.dn-prev.bad{color:#ff6a6a}
+.dn-card .btn{width:100%}
+.dn-msg{min-height:20px;font:600 14px Manrope,sans-serif;line-height:1.4}
+.dn-msg.ok{color:#4ade80}
+.dn-msg.err{color:#ff6a6a}
+.dn-used{font:600 13px Manrope,sans-serif;color:var(--mut);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dn-used span{padding:3px 10px;border-radius:12px;background:#15181d;border:1px solid var(--line);color:var(--txt)}
+.dn-card .btn.dn-go{width:auto;padding:6px 14px;font-size:13px;letter-spacing:0}
+@media(max-width:520px){.dn-src{gap:10px;padding:9px 10px}.dn-ic{flex-basis:28px;font-size:22px}}
+
+/* ===== Донат: покупка за Stars ===== */
+.dn-tabs{grid-template-columns:repeat(3,1fr);max-width:900px}
+.dn-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;background:#2a2110;border:1px solid #6b5316;color:var(--gold);font:700 11px Manrope,sans-serif;vertical-align:2px}
+.dn-pack .btn{min-width:96px;width:auto}
+.dn-pack .btn:disabled{opacity:.5}
+@media(max-width:520px){.dn-tabs{gap:6px}.dn-pack{flex-wrap:wrap}.dn-pack .btn{flex:1 1 100%}}
